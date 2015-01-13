@@ -40,7 +40,6 @@ gl_FragColor = vec4(vc, 1.);\n\
         var ps = compileProgram(ctx, shaders.vertex, shaders.fragment);
         ps.color = ctx.getAttribLocation(ps, 'color');
         ps.position = ctx.getAttribLocation(ps, 'position');
-        ps.transformation = ctx.getUniformLocation(ps, 'tMatrix');
         ctx.enableVertexAttribArray(ps.color);
         ctx.enableVertexAttribArray(ps.position);
         if (!ctx.myPrograms) {
