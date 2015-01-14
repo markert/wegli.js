@@ -194,6 +194,9 @@
       setTextureSize: function (w, h) {
         ctxTexture.canvas.width = w;
         ctxTexture.canvas.height = h;
+      },
+      setTextureBufferSize: function (s) {
+        maxTextures = s;
       }
     };
     return self;
