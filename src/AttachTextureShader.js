@@ -122,6 +122,9 @@
 
     var drawTexture = function (style, texture, id, redraw) {
       var program;
+      ctx.enable(ctx.DEPTH_TEST);
+      ctx.blendFunc(ctx.SRC_ALPHA, ctx.ONE);
+      ctx.enable(ctx.BLEND);
       ctx.depthFunc(ctx.LEQUAL);
       if (style.plane !== 'n') {
         program = program3d;
@@ -166,6 +169,7 @@
       if (texture && texture.width > 0 && texture.height > 0 && ctx.canvas.height > 0 && ctx.canvas.width > 0) {
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
       }
+      ctx.disable(ctx.BLEND);
     };
 
     var self = {
