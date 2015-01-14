@@ -1,3 +1,3 @@
-/*! wegli 0.0.1 13-01-2015 */
+/*! wegli 0.0.2 14-01-2015 */
 /*! Author: Florian Markert */
 /*! License: MIT */
