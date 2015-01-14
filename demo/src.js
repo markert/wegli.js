@@ -4,6 +4,7 @@ $(document).ready(function () {
   var lineCanvas = document.getElementById('linectx');
   var hmCanvas = document.getElementById('hmctx');
   var wfCanvas = document.getElementById('wfctx');
+  var teCanvas = document.getElementById('tectx');
   var cnt;
   var w = 400,
     h = 200;
@@ -29,6 +30,13 @@ $(document).ready(function () {
     }
   });
 
+  var ctxt = createWebglContext(teCanvas, {
+    types: ['webgl', 'experimental-webgl'],
+    attrs: {
+      antialias: true
+    }
+  });
+
   var lineRenderer = attachPloygonShader(ctx);
   var hmRenderer = attachHeatmapShader(ctxh, {
     x: w,
@@ -38,6 +46,7 @@ $(document).ready(function () {
     x: w,
     y: h
   });
+  var teRenderer = attachTextureShader(ctxt);
   /* wfRenderer.transform({
      translate: {
        x: 0.5,
@@ -62,10 +71,21 @@ $(document).ready(function () {
   var phaseDrift = Math.PI;
   var ampl = 0.8;
 
+  var textStyle = {
+    font: '18px/30px Arial, serif',
+    fill: '#000000',
+    stroke: '#000000',
+    plane: 'n',
+    pos: [0.0, 0.0, 0.0]
+  };
+  teRenderer.setTextureSize(88, 88);
+  teRenderer.writeText('Text', textStyle);
+  textStyle.pos = [0.6, 0.0, 0.0];
+  teRenderer.writeText('g', textStyle);
+
   var run = function () {
     phaseShift = (phaseShift + Math.PI / w) % (32 * Math.PI);
     setTimeout(function () {
-
       // render wave
       var p = [];
       var c = [];
