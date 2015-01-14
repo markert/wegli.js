@@ -47,16 +47,16 @@ $(document).ready(function () {
     y: h
   });
   var teRenderer = attachTextureShader(ctxt);
-  /* wfRenderer.transform({
+  /*wfRenderer.transform({
      translate: {
-       x: 0.5,
+       x: -0.3,
        y: 0,
        z: -1
      },
      rotate: {
-       x: 0.9,
-       y: 0.8,
-       z: 0.0
+       x: -2.7,
+       y: -2.8,
+       z: -1.0
      },
      aspectRatio: 1,
      scaling: 0.7,
