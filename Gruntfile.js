@@ -11,13 +11,14 @@ module.exports = function (grunt) {
         separator: ';'
       },
       dist: {
-        src: ['src/utils.js',
-          'src/iirCoeffs.js',
-          'src/firCoeffs.js',
-          'src/calcCascades.js',
-          'src/iirFilter.js',
-          'src/firFilter.js',
-          'src/testFilter.js'
+        src: ['src/glutils.js',
+          'src/heatmapShader.js',
+          'src/polygonShader.js',
+          'src/textureShader.js',
+          'src/AttachPolygonShader.js',
+          'src/AttachHeatmapShader.js',
+          'src/AttachWaterfallShader.js',
+          'src/AttachTextureShader.js'
         ],
         dest: 'dist/<%= pkg.name %>.js'
       }
