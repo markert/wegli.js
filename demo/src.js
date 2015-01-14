@@ -72,6 +72,13 @@ $(document).ready(function () {
   var phaseDrift = Math.PI;
   var ampl = 0.8;
 
+  var getTime = function () {
+    if (performance && performance.now) {
+      return performance.now();
+    }
+    return 1;
+  };
+
   var textStyle = {
     font: '18px/30px Arial, serif',
     fill: '#000000',
@@ -79,72 +86,75 @@ $(document).ready(function () {
     plane: 'n',
     pos: [0.0, 0.0, 0.0]
   };
-  teRenderer.setTextureSize(88, 88);
-  teRenderer.writeText('Text', textStyle);
-  textStyle.pos = [0.6, 0.0, 0.0];
-  teRenderer.writeText('g', textStyle);
+  teRenderer.setTextureSize(256, 256);
 
   var run = function () {
-    num = (num + 1) % 30;
-    textStyle.pos = [0.0, -0.5, 0.0];
-    teRenderer.writeText('Text', textStyle);
+    var time = getTime();
+    textStyle.pos = [-0.2, 0.0, 0.0];
+    teRenderer.writeText('ms per Fame', textStyle);
     textStyle.pos = [0.6, 0.0, 0.0];
-    teRenderer.writeText('' + num, textStyle);
+    teRenderer.writeText('' + (num).toFixed(1), textStyle);
     phaseShift = (phaseShift + Math.PI / w) % (32 * Math.PI);
+
+    // render wave
+    var p = [];
+    var c = [];
+    for (cnt = 0; cnt < w; cnt++) {
+      p.push((2 * cnt) / (w) - 1);
+      p.push(Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w))));
+      c.push(cnt / w);
+      c.push((w - cnt) / w);
+      c.push(cnt / w);
+    }
+    lineRenderer.draw(p, c, 'LINE_STRIP');
+
+    // render heatmap wave
+    hmRenderer.age(0.015);
+    var i = 0.3;
+    for (cnt = 0; cnt < w; cnt++) {
+      var x = cnt;
+      var y = Math.floor((Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w)) + Math.PI) * w / 2 + w / 2) / 2);
+      hmRenderer.setPixel(x, y, i);
+      y += 1 % h;
+      hmRenderer.setPixel(x, y, i);
+      y += 1 % h;
+      hmRenderer.setPixel(x, y, i);
+      y += 1 % h;
+      hmRenderer.setPixel(x, y, i);
+      y += 1 % h;
+      hmRenderer.setPixel(x, y, i);
+    }
+    hmRenderer.drawC(hmRenderer.buffer, 'POINTS');
+
+    // render waterfall
+    var d = [];
+    for (cnt = 0; cnt < h; cnt++) {
+      d[cnt] = ampl * (Math.sin(Math.PI + 2 * Math.PI * (phaseDrift + (cnt) / (h))) + 1) / 2;
+    }
+    var sign = Math.random();
+    if (sign > 0.5) {
+      phaseDrift += Math.random() / 500 * Math.PI;
+      ampl += (Math.random() / 50);
+    } else {
+      phaseDrift -= Math.random() / 500 * Math.PI;
+      ampl -= (Math.random() / 50);
+    }
+    if (ampl > 1) {
+      ampl = 1;
+    } else if (ampl < 0) {
+      ampl = 0;
+    }
+    wfRenderer.setColumn(d);
+    wfRenderer.drawC(wfRenderer.buffer, 'POINTS');
+    var tnum = getTime() - time;
+    if (num === 0) {
+      num = 10;
+    } else {
+      num = tnum * 0.04 + num * 0.96;
+    }
     setTimeout(function () {
-      // render wave
-      var p = [];
-      var c = [];
-      for (cnt = 0; cnt < w; cnt++) {
-        p.push((2 * cnt) / (w) - 1);
-        p.push(Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w))));
-        c.push(cnt / w);
-        c.push((w - cnt) / w);
-        c.push(cnt / w);
-      }
-      lineRenderer.draw(p, c, 'LINE_STRIP');
-
-      // render heatmap wave
-      hmRenderer.age(0.015);
-      var i = 0.3;
-      for (cnt = 0; cnt < w; cnt++) {
-        var x = cnt;
-        var y = Math.floor((Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w)) + Math.PI) * w / 2 + w / 2) / 2);
-        hmRenderer.setPixel(x, y, i);
-        y += 1 % h;
-        hmRenderer.setPixel(x, y, i);
-        y += 1 % h;
-        hmRenderer.setPixel(x, y, i);
-        y += 1 % h;
-        hmRenderer.setPixel(x, y, i);
-        y += 1 % h;
-        hmRenderer.setPixel(x, y, i);
-      }
-      hmRenderer.drawC(hmRenderer.buffer, 'POINTS');
-
-      // render waterfall
-      var d = [];
-      for (cnt = 0; cnt < h; cnt++) {
-        d[cnt] = ampl * (Math.sin(Math.PI + 2 * Math.PI * (phaseDrift + (cnt) / (h))) + 1) / 2;
-      }
-      var sign = Math.random();
-      if (sign > 0.5) {
-        phaseDrift += Math.random() / 500 * Math.PI;
-        ampl += (Math.random() / 50);
-      } else {
-        phaseDrift -= Math.random() / 500 * Math.PI;
-        ampl -= (Math.random() / 50);
-      }
-      if (ampl > 1) {
-        ampl = 1;
-      } else if (ampl < 0) {
-        ampl = 0;
-      }
-      wfRenderer.setColumn(d);
-      wfRenderer.drawC(wfRenderer.buffer, 'POINTS');
-
-      run();
-    }, 25);
+      requestAnimationFrame(run);
+    }, 30);
   };
-  run();
+  requestAnimationFrame(run);
 });
