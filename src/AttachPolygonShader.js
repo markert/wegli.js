@@ -1,4 +1,4 @@
-/* global define */
+/* global define, PolygonShader */
 /*jslint bitwise: true */
 (function (window) {
   'use strict';

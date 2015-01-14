@@ -1,4 +1,4 @@
-/* global define */
+/* global define, initWebgl, HeatmapShader, getTransformationMatrix */
 /*jslint bitwise: true */
 (function (window) {
   'use strict';

@@ -1,5 +1,5 @@
-/* global define */
-/*jslint bitwise: true */
+/* global define, compileProgram */
+/*jshint multistr: true */
 (function (window) {
   'use strict';
 

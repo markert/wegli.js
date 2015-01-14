@@ -1,3 +1,6 @@
+/* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */
+'use strict';
+
 var getShader = function (ctx, source, type) {
   var shader = ctx.createShader(type);
   ctx.shaderSource(shader, source);
@@ -31,7 +34,7 @@ var createWebglContext = function (canvas, params) {
 // standard matrix transformation
 // mixes viewport and object transformation
 
-getTransformationMatrix = function (params) {
+var getTransformationMatrix = function (params) {
   var tx = params.translate.x,
     ty = params.translate.y,
     tz = params.translate.z,

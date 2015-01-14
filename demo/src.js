@@ -1,5 +1,5 @@
+/* global createWebglContext, attachPloygonShader, attachWaterfallShader, attachHeatmapShader, attachTextureShader */
 $(document).ready(function () {
-  /* global define */
   'use strict';
   var lineCanvas = document.getElementById('linectx');
   var hmCanvas = document.getElementById('hmctx');
