@@ -68,6 +68,7 @@ $(document).ready(function () {
 
    });*/
   var phaseShift = 0;
+  var num = 0;
   var phaseDrift = Math.PI;
   var ampl = 0.8;
 
@@ -84,6 +85,11 @@ $(document).ready(function () {
   teRenderer.writeText('g', textStyle);
 
   var run = function () {
+    num = (num + 1) % 30;
+    textStyle.pos = [0.0, -0.5, 0.0];
+    teRenderer.writeText('Text', textStyle);
+    textStyle.pos = [0.6, 0.0, 0.0];
+    teRenderer.writeText('' + num, textStyle);
     phaseShift = (phaseShift + Math.PI / w) % (32 * Math.PI);
     setTimeout(function () {
       // render wave
