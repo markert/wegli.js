@@ -29,12 +29,12 @@ $(document).ready(function () {
     }
   });
 
-  var lineRenderer = AttachPloygonShader(ctx);
-  var hmRenderer = AttachHeatmapShader(ctxh, {
+  var lineRenderer = attachPloygonShader(ctx);
+  var hmRenderer = attachHeatmapShader(ctxh, {
     x: w,
     y: h
   });
-  var wfRenderer = AttachWaterfallShader(ctxw, {
+  var wfRenderer = attachWaterfallShader(ctxw, {
     x: w,
     y: h
   });

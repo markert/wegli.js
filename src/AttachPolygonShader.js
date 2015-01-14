@@ -3,7 +3,7 @@
 (function (window) {
   'use strict';
 
-  var AttachPloygonShader = function (ctx) {
+  var attachPloygonShader = function (ctx) {
     ctx.depthFunc(ctx.LEQUAL);
     new PolygonShader().getShader(ctx);
     var program = ctx.myPrograms.polygonShader;
@@ -31,11 +31,11 @@
     return self;
   };
   if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = AttachPloygonShader;
+    module.exports = attachPloygonShader;
   } else {
-    window.AttachPloygonShader = AttachPloygonShader;
+    window.attachPloygonShader = attachPloygonShader;
     if (typeof define === 'function' && define.amd) {
-      define(AttachPloygonShader);
+      define(attachPloygonShader);
     }
   }
 })(window);

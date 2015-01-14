@@ -3,7 +3,7 @@
 (function (window) {
   'use strict';
 
-  var AttachWaterfallShader = function (ctx, dimensions) {
+  var attachWaterfallShader = function (ctx, dimensions) {
     var wParams = {};
     initWebgl(wParams);
     new HeatmapShader().getFloatingShader(ctx, false);
@@ -93,11 +93,11 @@
     return self;
   };
   if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = AttachWaterfallShader;
+    module.exports = attachWaterfallShader;
   } else {
-    window.AttachWaterfallShader = AttachWaterfallShader;
+    window.attachWaterfallShader = attachWaterfallShader;
     if (typeof define === 'function' && define.amd) {
-      define(AttachWaterfallShader);
+      define(attachWaterfallShader);
     }
   }
 })(window);

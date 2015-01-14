@@ -3,7 +3,7 @@
 (function (window) {
   'use strict';
 
-  var AttachHeatmapShader = function (ctx, dimensions) {
+  var attachHeatmapShader = function (ctx, dimensions) {
     var wParams = {};
     initWebgl(wParams);
     new HeatmapShader().getHeatmapShader(ctx, false);
@@ -98,11 +98,11 @@
     return self;
   };
   if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = AttachHeatmapShader;
+    module.exports = attachHeatmapShader;
   } else {
-    window.AttachHeatmapShader = AttachHeatmapShader;
+    window.attachHeatmapShader = attachHeatmapShader;
     if (typeof define === 'function' && define.amd) {
-      define(AttachHeatmapShader);
+      define(attachHeatmapShader);
     }
   }
 })(window);
