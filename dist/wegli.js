@@ -1,4 +1,4 @@
-/*! wegli 0.0.3 14-01-2015 */
+/*! wegli 0.0.4 14-01-2015 */
 /*! Author: Florian Markert */
 /*! License: MIT */
 /* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */
@@ -114,6 +114,244 @@ var initWebgl = function (webglParams) {
   };
   webglParams.transformCoordinates = getTransformationMatrix(webglParams.transformValues);
 };
+;/* global define, compileProgram */
+/*jshint multistr: true */
+(function (window) {
+  'use strict';
+
+  var HeatmapShader = function () {
+    var shaders = {
+      vertexFloating: '\n\
+attribute vec3 position;\n\
+uniform float shift;\n\
+varying float height;\n\
+uniform mat4 uPMatrix;\n\
+void main(void) {\n\
+gl_Position = uPMatrix * vec4(position.x - shift, position.y, position.z, 1.);\n\
+height=-4.0*position.z;\n\
+gl_PointSize = 1.0;\n\
+}',
+      vertexAging: '\n\
+attribute vec3 position;\n\
+attribute float birth;\n\
+varying float height;\n\
+uniform mat4 uPMatrix;\n\
+uniform float date;\n\
+void main(void) {\n\
+float zpos = position.z+date-birth;\n\
+if (zpos > 0.0) zpos = 0.0;\n\
+if (zpos < -2.0) zpos = -2.0;\n\
+gl_Position = uPMatrix * vec4(position.x, position.y, zpos, 1.);\n\
+height=-4.0*zpos;\n\
+gl_PointSize = 1.0;\n\
+}',
+      fragmentColor: '\n\
+precision mediump float;\n\
+varying float height;\n\
+void main(void) {\n\
+vec3 cs = vec3(0.5,0,0);\n\
+if (0.0 <= height && height <= 0.5) cs = vec3(0,0,height+0.5);\n\
+else if (0.5 < height && height <= 1.5) cs = vec3(0,height-0.5,1);\n\
+else if (1.5 < height && height <= 2.5) cs = vec3(height-1.5,1,2.5-height);\n\
+else if (2.5 < height && height <= 3.5) cs = vec3(1,3.5-height,0);\n\
+else if (3.5 < height && height <= 4.0) cs = vec3(4.5-height,0,0);\n\
+gl_FragColor = vec4(cs, 1.);\n\
+}',
+      fragmentBw: '\n\
+precision mediump float;\n\
+varying float height;\n\
+void main(void) {\n\
+vec3 cs = vec3(height/4.0,height/4.0,height/4.0);\n\
+gl_FragColor = vec4(cs, 1.);\n\
+}'
+    };
+
+    var self = {
+      getHeatmapShader: function (ctx, coloring) {
+        var fs = shaders.fragmentBw;
+        if (coloring) {
+          fs = shaders.fragmentColor;
+        }
+        var ps = compileProgram(ctx, shaders.vertexAging, fs);
+        ps.position = ctx.getAttribLocation(ps, 'position');
+        ps.birth = ctx.getAttribLocation(ps, 'birth');
+        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
+        ps.date = ctx.getUniformLocation(ps, 'date');
+        ctx.enableVertexAttribArray(ps.position);
+        ctx.enableVertexAttribArray(ps.birth);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        if (coloring) {
+          ctx.myPrograms.heatmapShaderC = ps;
+        } else {
+          ctx.myPrograms.heatmapShaderBw = ps;
+        }
+
+      },
+      getFloatingShader: function (ctx, coloring) {
+        var fs = shaders.fragmentBw;
+        if (coloring) {
+          fs = shaders.fragmentColor;
+        }
+        var ps = compileProgram(ctx, shaders.vertexFloating, fs);
+        ps.position = ctx.getAttribLocation(ps, 'position');
+        ps.shift = ctx.getUniformLocation(ps, 'shift');
+        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
+        ctx.enableVertexAttribArray(ps.position);
+        ctx.enableVertexAttribArray(ps.currentShift);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        if (coloring) {
+          ctx.myPrograms.floatingShaderC = ps;
+        } else {
+          ctx.myPrograms.floatingShaderBw = ps;
+        }
+      }
+    };
+    return self;
+  };
+  if (typeof module === 'object' && module && typeof module.exports === 'object') {
+    module.exports = HeatmapShader;
+  } else {
+    window.HeatmapShader = HeatmapShader;
+    if (typeof define === 'function' && define.amd) {
+      define(HeatmapShader);
+    }
+  }
+})(window);
+;/* global define, compileProgram */
+/*jshint multistr: true */
+(function (window) {
+  'use strict';
+
+  var PolygonShader = function () {
+    var shaders = {
+      /*
+       * The vertex shader defines the position of a vertex
+       * since we draw a plot, position needs only two dimensions
+       * color is RGB amd uses three dimensions
+       * data is passed to this shader and can be shared with the
+       * fragment shader by using 'varying'
+       * gl_Position and gl_PointSize define the screen output
+       * for fancy effects you could do math on the position attribute
+       */
+      vertex: '\n\
+attribute vec2 position;\n\
+attribute vec3 color;\n\
+varying vec3 vc;\n\
+void main(void) {\n\
+gl_Position = vec4(position, 0., 1.);\n\
+gl_PointSize = 2.0;\n\
+vc=color;\n\
+}',
+      /*
+       * the fragment shader colors and textures points and areas
+       * glFragColor is the color of the resulting point
+       * the desired color is in vc from the vertex shader
+       */
+      fragment: '\n\
+precision mediump float;\n\
+varying vec3 vc;\n\
+void main(void) {\n\
+gl_FragColor = vec4(vc, 1.);\n\
+}'
+    };
+    var self = {
+      getShader: function (ctx) {
+        var ps = compileProgram(ctx, shaders.vertex, shaders.fragment);
+        ps.color = ctx.getAttribLocation(ps, 'color');
+        ps.position = ctx.getAttribLocation(ps, 'position');
+        ctx.enableVertexAttribArray(ps.color);
+        ctx.enableVertexAttribArray(ps.position);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        ctx.myPrograms.polygonShader = ps;
+      }
+    };
+    return self;
+  };
+  if (typeof module === 'object' && module && typeof module.exports === 'object') {
+    module.exports = PolygonShader;
+  } else {
+    window.PolygonShader = PolygonShader;
+    if (typeof define === 'function' && define.amd) {
+      define(PolygonShader);
+    }
+  }
+})(window);
+;/* global define, compileProgram */
+/*jshint multistr: true */
+(function (window) {
+  'use strict';
+
+  var TextureShader = function () {
+    var shaders = {
+      vertex2d: '\n\
+attribute vec3 position;\n\
+attribute vec4 inputTextureCoordinate;\n\
+varying vec2 textureCoordinate;\n\
+void main(void) {\n\
+gl_Position = vec4(position, 1.);\n\
+textureCoordinate = inputTextureCoordinate.xy;\n\
+}',
+      vertex3d: '\n\
+attribute vec3 position;\n\
+attribute vec4 inputTextureCoordinate;\n\
+uniform mat4 uPMatrix;\n\
+varying vec2 textureCoordinate;\n\
+void main(void) {\n\
+gl_Position = uPMatrix * vec4(position, 1.);\n\
+textureCoordinate = inputTextureCoordinate.xy;\n\
+}',
+      fragment: '\n\
+precision mediump float;\n\
+varying vec2 textureCoordinate;\n\
+uniform sampler2D uSampler;\n\
+void main(void) {\n\
+gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
+}'
+    };
+    var self = {
+      getShader3d: function (ctx) {
+        var ps = compileProgram(ctx, shaders.vertex3d, shaders.fragment);
+        ps.texCoord = ctx.getAttribLocation(ps, 'inputTextureCoordinate');
+        ps.texPos = ctx.getAttribLocation(ps, 'position');
+        ps.sampler = ctx.getUniformLocation(ps, 'uSampler');
+        ps.pMatrixUniform = ctx.getUniformLocation(ps, 'uPMatrix');
+        ctx.enableVertexAttribArray(ps.texCoord);
+        ctx.enableVertexAttribArray(ps.texPos);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        ctx.myPrograms.textureShader3d = ps;
+      },
+      getShader2d: function (ctx) {
+        var ps = compileProgram(ctx, shaders.vertex2d, shaders.fragment);
+        ps.texCoord = ctx.getAttribLocation(ps, 'inputTextureCoordinate');
+        ps.texPos = ctx.getAttribLocation(ps, 'position');
+        ps.sampler = ctx.getUniformLocation(ps, 'uSampler');
+        ctx.enableVertexAttribArray(ps.texCoord);
+        ctx.enableVertexAttribArray(ps.texPos);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        ctx.myPrograms.textureShader2d = ps;
+      }
+    };
+    return self;
+  };
+  if (typeof module === 'object' && module && typeof module.exports === 'object') {
+    module.exports = TextureShader;
+  } else {
+    window.TextureShader = TextureShader;
+    if (typeof define === 'function' && define.amd) {
+      define(TextureShader);
+    }
+  }
+})(window);
 ;/* global define, PolygonShader */
 /*jslint bitwise: true */
 (function (window) {

@@ -12,9 +12,9 @@ module.exports = function (grunt) {
       },
       dist: {
         src: ['src/glutils.js',
-          'src/heatmapShader.js',
-          'src/polygonShader.js',
-          'src/textureShader.js',
+          'src/heatmapshader.js',
+          'src/polygonshader.js',
+          'src/textureshader.js',
           'src/AttachPolygonShader.js',
           'src/AttachHeatmapShader.js',
           'src/AttachWaterfallShader.js',
