@@ -42,13 +42,12 @@
           return false;
         }
         var offset = (((width - x) + 1) * height * 4 - y * 4);
-        var val = buffer.vertices[offset + 2] - i - buffer.vertices[offset + 3] + buffer.age;
-        if (val < -1) {
-          val = -1;
-        } else if (val > -i && val < 0) {
-          val = -i - (i + val);
-        } else if (val >= 0) {
+        var carry = buffer.vertices[offset + 2] - buffer.vertices[offset + 3] + buffer.age;
+        var val = carry - i;
+        if (carry > i) {
           val = -i;
+        } else if (val < -1) {
+          val = -1;
         }
         buffer.vertices[offset + 2] = val;
         buffer.vertices[offset + 3] = buffer.age;
