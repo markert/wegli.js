@@ -38,27 +38,29 @@ $(document).ready(function () {
     x: w,
     y: h
   });
-  /*  hmRenderer.transform({
-      translate: {
-        x: 0.5,
-        y: 0,
-        z: -1
-      },
-      rotate: {
-        x: 0.9,
-        y: 0.8,
-        z: 0.0
-      },
-      aspectRatio: 1,
-      scaling: 0.7,
-      distance: 1.0,
-      plane: {
-        far: 1,
-        near: -1
-      }
+  /* wfRenderer.transform({
+     translate: {
+       x: 0.5,
+       y: 0,
+       z: -1
+     },
+     rotate: {
+       x: 0.9,
+       y: 0.8,
+       z: 0.0
+     },
+     aspectRatio: 1,
+     scaling: 0.7,
+     distance: 1.0,
+     plane: {
+       far: 1,
+       near: -1
+     }
 
-    });*/
+   });*/
   var phaseShift = 0;
+  var phaseDrift = Math.PI;
+  var ampl = 0.8;
 
   var run = function () {
     phaseShift = (phaseShift + Math.PI / w) % (32 * Math.PI);
@@ -97,7 +99,20 @@ $(document).ready(function () {
       // render waterfall
       var d = [];
       for (cnt = 0; cnt < h; cnt++) {
-        d[cnt] = (Math.sin(2 * Math.PI * (phaseShift + (cnt) / (h))) + 1) / 2;
+        d[cnt] = ampl * (Math.sin(Math.PI + 2 * Math.PI * (phaseDrift + (cnt) / (h))) + 1) / 2;
+      }
+      var sign = Math.random();
+      if (sign > 0.5) {
+        phaseDrift += Math.random() / 500 * Math.PI;
+        ampl += (Math.random() / 50);
+      } else {
+        phaseDrift -= Math.random() / 500 * Math.PI;
+        ampl -= (Math.random() / 50);
+      }
+      if (ampl > 1) {
+        ampl = 1;
+      } else if (ampl < 0) {
+        ampl = 0;
       }
       wfRenderer.setColumn(d);
       wfRenderer.drawC(wfRenderer.buffer, 'POINTS');
