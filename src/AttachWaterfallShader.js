@@ -42,7 +42,14 @@
         ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
         var arrayByteSize = buffer.arraySize * 12;
         var offset = buffer.columnPointer * height * 12;
-        for (var i = 0; i < d.length && i < height; i++) {
+        var i = 0;
+        if (d.length < height) {
+          d.length = height;
+          for (i = d.length; i < height; i++) {
+            d[i] = 0;
+          }
+        }
+        for (i = 0; i < height; i++) {
           var data = new Float32Array(3);
           data[0] = buffer.xOffset + 1;
           data[1] = (i * 2 / d.length) - 1;
