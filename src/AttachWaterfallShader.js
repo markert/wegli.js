@@ -13,6 +13,7 @@
     var particleBuffer = ctx.createBuffer();
     var buffer = {};
     buffer.setColumn = function () {};
+    buffer.pointSize = 1.0;
 
     var initBuffer = function (width, height) {
       var shift = 0;
@@ -78,6 +79,7 @@
       ctx.lineWidth(1);
       ctx.uniform1f(p.shift, buffer.xOffset);
       ctx.uniformMatrix4fv(p.transformation, false, wParams.transformCoordinates);
+      ctx.uniform1f(p.pointSize, buffer.pointSize);
       ctx.drawArrays(ctx[type], 0, buffer.arraySize / 3);
     };
 
@@ -95,7 +97,10 @@
       drawC: function (params, type) {
         render(params, type, particleBuffer, programC);
       },
-      setColumn: buffer.setColumn
+      setColumn: buffer.setColumn,
+      setPointSize: function (ps) {
+        buffer.pointSize = ps;
+      }
     };
     return self;
   };

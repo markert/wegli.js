@@ -14,6 +14,7 @@
     var buffer = {};
     buffer.setPixel = function () {};
     buffer.age = 0;
+    buffer.pointSize = 1.0;
 
     var initBuffer = function (width, height) {
       var shift = 0;
@@ -71,6 +72,7 @@
       ctx.vertexAttribPointer(p.birth, 1, ctx.FLOAT, false, 16, 12);
       ctx.lineWidth(1);
       ctx.uniform1f(p.date, buffer.age);
+      ctx.uniform1f(p.pointSize, buffer.pointSize);
       ctx.uniformMatrix4fv(p.transformation, false, wParams.transformCoordinates);
       ctx.drawArrays(ctx[type], 0, buffer.arraySize / 4);
     };
@@ -92,6 +94,9 @@
       setPixel: buffer.setPixel,
       age: function (t) {
         buffer.age += t;
+      },
+      setPointSize: function (ps) {
+        buffer.pointSize = ps;
       }
     };
     return self;
