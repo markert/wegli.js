@@ -42,6 +42,7 @@ $(document).ready(function () {
     x: w,
     y: h
   });
+  hmRenderer.setPointSize(3);
   var wfRenderer = attachWaterfallShader(ctxw, {
     x: w,
     y: h
