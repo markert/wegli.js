@@ -107,22 +107,23 @@ $(document).ready(function () {
       c.push(cnt / w);
     }
     lineRenderer.draw(p, c, 'LINE_STRIP');
-
     // render heatmap wave
     hmRenderer.age(0.015);
-    var i = 0.3;
-    for (cnt = 0; cnt < w; cnt++) {
+    var i = 0.5;
+
+    var yPrev = (Math.sin(2 * Math.PI * (phaseShift + (0) / (w)) + Math.PI) * w / 2 + w / 2) / 2;
+    for (cnt = 1; cnt < w; cnt++) {
       var x = cnt;
-      var y = Math.floor((Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w)) + Math.PI) * w / 2 + w / 2) / 2);
-      hmRenderer.setPixel(x, y, i);
-      y += 1 % h;
-      hmRenderer.setPixel(x, y, i);
-      y += 1 % h;
-      hmRenderer.setPixel(x, y, i);
-      y += 1 % h;
-      hmRenderer.setPixel(x, y, i);
-      y += 1 % h;
-      hmRenderer.setPixel(x, y, i);
+      var y = (Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w)) + Math.PI) * w / 2 + w / 2) / 2;
+      var yDiff = y - yPrev;
+      for (var j = 0; j <= Math.ceil(Math.abs(yDiff)); j++) {
+        if (yDiff >= 0) {
+          hmRenderer.setPixel(x, Math.floor(y + j), i);
+        } else if (yDiff < 0) {
+          hmRenderer.setPixel(x, Math.floor(y - j), i);
+        }
+      }
+      yPrev = y;
     }
     hmRenderer.drawC(hmRenderer.buffer, 'POINTS');
 
