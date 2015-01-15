@@ -76,7 +76,7 @@
     };
 
     var self = {
-      createBuffer: function (w, h) {
+      reinitBuffer: function (w, h) {
         return initBuffer(w, h);
       },
       transform: function (params) {
