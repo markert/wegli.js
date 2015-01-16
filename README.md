@@ -112,3 +112,27 @@ Using heatmap shaders:
   // decrease all pixels by 0.002
   hmRenderer.age(0.002);
 ```
+Setting transformation:
+```javascript
+  // works for every renderer
+  // rotates, translates, scales scene
+  renderer.transform({
+    translate: {
+      x: 0,
+      y: 0,
+      z: 0
+    },
+    rotate: {
+      x: 0.0,
+      y: 0.0,
+      z: 0.0
+    },
+    aspectRatio: 1,
+    scaling: 1.0,
+    distance: 1.0,
+    plane: {
+      far: 1,
+      near: -1
+    }
+  });
+```
