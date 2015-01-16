@@ -9,6 +9,8 @@
     var program = ctx.myPrograms.polygonShader;
     var positionBuffer = ctx.createBuffer();
     var colorBuffer = ctx.createBuffer();
+    var wParams = {};
+    initWebgl(wParams);
 
     var fillGraphicsArray = function (p, d, b, l) {
       ctx.bindBuffer(ctx.ARRAY_BUFFER, b);
@@ -18,6 +20,7 @@
 
     var render = function (type, length) {
       ctx.lineWidth(3);
+      ctx.uniformMatrix4fv(program.transformation, false, wParams.transformCoordinates);
       ctx.drawArrays(type, 0, length);
     };
     var self = {
@@ -26,6 +29,10 @@
         fillGraphicsArray(program.position, p, positionBuffer, 2);
         fillGraphicsArray(program.color, c, colorBuffer, 3);
         render(ctx[type], p.length / 2);
+      },
+      transform: function (params) {
+        wParams.transformValues = params;
+        wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
       }
     };
     return self;

@@ -18,6 +18,7 @@
 attribute vec2 position;\n\
 attribute vec3 color;\n\
 varying vec3 vc;\n\
+uniform mat4 uPMatrix;\n\
 void main(void) {\n\
 gl_Position = vec4(position, 0., 1.);\n\
 gl_PointSize = 2.0;\n\
@@ -40,6 +41,7 @@ gl_FragColor = vec4(vc, 1.);\n\
         var ps = compileProgram(ctx, shaders.vertex, shaders.fragment);
         ps.color = ctx.getAttribLocation(ps, 'color');
         ps.position = ctx.getAttribLocation(ps, 'position');
+        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
         ctx.enableVertexAttribArray(ps.color);
         ctx.enableVertexAttribArray(ps.position);
         if (!ctx.myPrograms) {

@@ -69,7 +69,7 @@
       initBuffer(100, 100);
     }
 
-    var render = function (params, type, b, p) {
+    var render = function (type, b, p) {
       ctx.useProgram(p);
       ctx.blendFunc(ctx.SRC_ALPHA, ctx.ONE);
       ctx.enable(ctx.DEPTH_TEST);
@@ -91,11 +91,11 @@
         wParams.transformValues = params;
         wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
       },
-      drawBw: function (params, type) {
-        render(params, type, particleBuffer, programBw);
+      drawBw: function (type) {
+        render(type, particleBuffer, programBw);
       },
-      drawC: function (params, type) {
-        render(params, type, particleBuffer, programC);
+      drawC: function (type) {
+        render(type, particleBuffer, programC);
       },
       setColumn: buffer.setColumn,
       setPointSize: function (ps) {

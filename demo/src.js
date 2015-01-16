@@ -148,7 +148,7 @@ $(document).ready(function () {
       }
       yPrev = y;
     }
-    hmRenderer.drawC(hmRenderer.buffer, 'POINTS');
+    hmRenderer.drawC('POINTS');
 
     // render waterfall
     var d = [];
@@ -173,7 +173,7 @@ $(document).ready(function () {
       ampl = 0;
     }
     wfRenderer.setColumn(d);
-    wfRenderer.drawC(wfRenderer.buffer, 'POINTS');
+    wfRenderer.drawC('POINTS');
     var tnum = getTime() - time;
     if (num === 0) {
       num = 10;

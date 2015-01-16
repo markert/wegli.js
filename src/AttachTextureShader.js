@@ -187,11 +187,11 @@
         }
 
       },
-      draw3dTexture: function (texture, style) {
-        prepareTexture(style, style.redraw, 0);
-        drawTexture(style, texture, 0, style.redraw);
+      transform: function (params) {
+        wParams.transformValues = params;
+        wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
       },
-      draw2dTexture: function (texture, style) {
+      drawTexture: function (texture, style) {
         prepareTexture(style, style.redraw, 0);
         drawTexture(style, texture, 0, style.redraw);
       },
