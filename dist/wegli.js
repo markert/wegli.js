@@ -1,4 +1,4 @@
-/*! wegli 0.0.4 14-01-2015 */
+/*! wegli 0.0.5 16-01-2015 */
 /*! Author: Florian Markert */
 /*! License: MIT */
 /* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */
@@ -124,18 +124,20 @@ var initWebgl = function (webglParams) {
       vertexFloating: '\n\
 attribute vec3 position;\n\
 uniform float shift;\n\
+uniform float ps;\n\
 varying float height;\n\
 uniform mat4 uPMatrix;\n\
 void main(void) {\n\
 gl_Position = uPMatrix * vec4(position.x - shift, position.y, position.z, 1.);\n\
 height=-4.0*position.z;\n\
-gl_PointSize = 1.0;\n\
+gl_PointSize = ps;\n\
 }',
       vertexAging: '\n\
 attribute vec3 position;\n\
 attribute float birth;\n\
 varying float height;\n\
 uniform mat4 uPMatrix;\n\
+uniform float ps;\n\
 uniform float date;\n\
 void main(void) {\n\
 float zpos = position.z+date-birth;\n\
@@ -143,7 +145,7 @@ if (zpos > 0.0) zpos = 0.0;\n\
 if (zpos < -2.0) zpos = -2.0;\n\
 gl_Position = uPMatrix * vec4(position.x, position.y, zpos, 1.);\n\
 height=-4.0*zpos;\n\
-gl_PointSize = 1.0;\n\
+gl_PointSize = ps;\n\
 }',
       fragmentColor: '\n\
 precision mediump float;\n\
@@ -176,6 +178,7 @@ gl_FragColor = vec4(cs, 1.);\n\
         ps.position = ctx.getAttribLocation(ps, 'position');
         ps.birth = ctx.getAttribLocation(ps, 'birth');
         ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
+        ps.pointSize = ctx.getUniformLocation(ps, 'ps');
         ps.date = ctx.getUniformLocation(ps, 'date');
         ctx.enableVertexAttribArray(ps.position);
         ctx.enableVertexAttribArray(ps.birth);
@@ -197,6 +200,7 @@ gl_FragColor = vec4(cs, 1.);\n\
         var ps = compileProgram(ctx, shaders.vertexFloating, fs);
         ps.position = ctx.getAttribLocation(ps, 'position');
         ps.shift = ctx.getUniformLocation(ps, 'shift');
+        ps.pointSize = ctx.getUniformLocation(ps, 'ps');
         ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
         ctx.enableVertexAttribArray(ps.position);
         ctx.enableVertexAttribArray(ps.currentShift);
@@ -241,6 +245,7 @@ gl_FragColor = vec4(cs, 1.);\n\
 attribute vec2 position;\n\
 attribute vec3 color;\n\
 varying vec3 vc;\n\
+uniform mat4 uPMatrix;\n\
 void main(void) {\n\
 gl_Position = vec4(position, 0., 1.);\n\
 gl_PointSize = 2.0;\n\
@@ -263,6 +268,7 @@ gl_FragColor = vec4(vc, 1.);\n\
         var ps = compileProgram(ctx, shaders.vertex, shaders.fragment);
         ps.color = ctx.getAttribLocation(ps, 'color');
         ps.position = ctx.getAttribLocation(ps, 'position');
+        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
         ctx.enableVertexAttribArray(ps.color);
         ctx.enableVertexAttribArray(ps.position);
         if (!ctx.myPrograms) {
@@ -363,6 +369,8 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
     var program = ctx.myPrograms.polygonShader;
     var positionBuffer = ctx.createBuffer();
     var colorBuffer = ctx.createBuffer();
+    var wParams = {};
+    initWebgl(wParams);
 
     var fillGraphicsArray = function (p, d, b, l) {
       ctx.bindBuffer(ctx.ARRAY_BUFFER, b);
@@ -372,6 +380,7 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
 
     var render = function (type, length) {
       ctx.lineWidth(3);
+      ctx.uniformMatrix4fv(program.transformation, false, wParams.transformCoordinates);
       ctx.drawArrays(type, 0, length);
     };
     var self = {
@@ -380,6 +389,10 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
         fillGraphicsArray(program.position, p, positionBuffer, 2);
         fillGraphicsArray(program.color, c, colorBuffer, 3);
         render(ctx[type], p.length / 2);
+      },
+      transform: function (params) {
+        wParams.transformValues = params;
+        wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
       }
     };
     return self;
@@ -409,6 +422,7 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
     var buffer = {};
     buffer.setPixel = function () {};
     buffer.age = 0;
+    buffer.pointSize = 1.0;
 
     var initBuffer = function (width, height) {
       var shift = 0;
@@ -437,13 +451,12 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
           return false;
         }
         var offset = (((width - x) + 1) * height * 4 - y * 4);
-        var val = buffer.vertices[offset + 2] - i - buffer.vertices[offset + 3] + buffer.age;
-        if (val < -1) {
-          val = -1;
-        } else if (val > -i && val < 0) {
-          val = -i - (i + val);
-        } else if (val >= 0) {
+        var carry = buffer.vertices[offset + 2] - buffer.vertices[offset + 3] + buffer.age;
+        var val = carry - i;
+        if (carry > i) {
           val = -i;
+        } else if (val < -1) {
+          val = -1;
         }
         buffer.vertices[offset + 2] = val;
         buffer.vertices[offset + 3] = buffer.age;
@@ -467,12 +480,13 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
       ctx.vertexAttribPointer(p.birth, 1, ctx.FLOAT, false, 16, 12);
       ctx.lineWidth(1);
       ctx.uniform1f(p.date, buffer.age);
+      ctx.uniform1f(p.pointSize, buffer.pointSize);
       ctx.uniformMatrix4fv(p.transformation, false, wParams.transformCoordinates);
       ctx.drawArrays(ctx[type], 0, buffer.arraySize / 4);
     };
 
     var self = {
-      createBuffer: function (w, h) {
+      reinitBuffer: function (w, h) {
         return initBuffer(w, h);
       },
       transform: function (params) {
@@ -488,6 +502,9 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
       setPixel: buffer.setPixel,
       age: function (t) {
         buffer.age += t;
+      },
+      setPointSize: function (ps) {
+        buffer.pointSize = ps;
       }
     };
     return self;
@@ -516,6 +533,7 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
     var particleBuffer = ctx.createBuffer();
     var buffer = {};
     buffer.setColumn = function () {};
+    buffer.pointSize = 1.0;
 
     var initBuffer = function (width, height) {
       var shift = 0;
@@ -545,7 +563,14 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
         ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
         var arrayByteSize = buffer.arraySize * 12;
         var offset = buffer.columnPointer * height * 12;
-        for (var i = 0; i < d.length && i < height; i++) {
+        var i = 0;
+        if (d.length < height) {
+          d.length = height;
+          for (i = d.length; i < height; i++) {
+            d[i] = 0;
+          }
+        }
+        for (i = 0; i < height; i++) {
           var data = new Float32Array(3);
           data[0] = buffer.xOffset + 1;
           data[1] = (i * 2 / d.length) - 1;
@@ -564,7 +589,7 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
       initBuffer(100, 100);
     }
 
-    var render = function (params, type, b, p) {
+    var render = function (type, b, p) {
       ctx.useProgram(p);
       ctx.blendFunc(ctx.SRC_ALPHA, ctx.ONE);
       ctx.enable(ctx.DEPTH_TEST);
@@ -574,6 +599,7 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
       ctx.lineWidth(1);
       ctx.uniform1f(p.shift, buffer.xOffset);
       ctx.uniformMatrix4fv(p.transformation, false, wParams.transformCoordinates);
+      ctx.uniform1f(p.pointSize, buffer.pointSize);
       ctx.drawArrays(ctx[type], 0, buffer.arraySize / 3);
     };
 
@@ -585,13 +611,16 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
         wParams.transformValues = params;
         wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
       },
-      drawBw: function (params, type) {
-        render(params, type, particleBuffer, programBw);
+      drawBw: function (type) {
+        render(type, particleBuffer, programBw);
       },
-      drawC: function (params, type) {
-        render(params, type, particleBuffer, programC);
+      drawC: function (type) {
+        render(type, particleBuffer, programC);
       },
-      setColumn: buffer.setColumn
+      setColumn: buffer.setColumn,
+      setPointSize: function (ps) {
+        buffer.pointSize = ps;
+      }
     };
     return self;
   };
@@ -728,6 +757,9 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
 
     var drawTexture = function (style, texture, id, redraw) {
       var program;
+      ctx.enable(ctx.DEPTH_TEST);
+      ctx.blendFunc(ctx.SRC_ALPHA, ctx.ONE);
+      ctx.enable(ctx.BLEND);
       ctx.depthFunc(ctx.LEQUAL);
       if (style.plane !== 'n') {
         program = program3d;
@@ -772,6 +804,7 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
       if (texture && texture.width > 0 && texture.height > 0 && ctx.canvas.height > 0 && ctx.canvas.width > 0) {
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4);
       }
+      ctx.disable(ctx.BLEND);
     };
 
     var self = {
@@ -789,11 +822,11 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
         }
 
       },
-      draw3dTexture: function (texture, style) {
-        prepareTexture(style, style.redraw, 0);
-        drawTexture(style, texture, 0, style.redraw);
+      transform: function (params) {
+        wParams.transformValues = params;
+        wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
       },
-      draw2dTexture: function (texture, style) {
+      drawTexture: function (texture, style) {
         prepareTexture(style, style.redraw, 0);
         drawTexture(style, texture, 0, style.redraw);
       },
