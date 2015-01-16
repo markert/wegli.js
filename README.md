@@ -74,3 +74,41 @@ Using texture shaders:
   // to a webgl texture
   teRenderer.drawTexture(any2dCanvas, textureStyle);
 ```
+Using waterfall shaders:
+```javascript
+  // reinit buffer
+  wfRenderer.reinitBuffer(200,100);
+  // change size of points drawn
+  wfRenderer.setPointSize(3);
+  var d = [];
+  for (var i = 0; i < 100; i++) {
+    d[i] = i/100;
+  }
+  // add a nuew column
+  // all older columns are shifted one pixel left
+  wfRenderer.setColumn(d);
+  // draw a colored waterfall
+  // POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN also possible
+  wfRenderer.drawC('POINTS');
+  // draw a black/white waterfall
+  // POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN also possible
+  wfRenderer.drawBw('POINTS');
+```
+Using heatmap shaders:
+```javascript
+  // reinit buffer
+  hmRenderer.reinitBuffer(200,100);
+  // change size of points drawn
+  hmRenderer.setPointSize(3);
+  // imcrease pixel (45, 17) by 0.3
+  // pixel color range from 0 to 1
+  hmRenderer.setPixel(45, 17, 0.3);
+  // draw a colored heatmap
+  // POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN also possible
+  hmRenderer.drawC('POINTS');
+  // draw a black/white heatmap
+  // POINTS, LINES, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN also possible
+  hmRenderer.drawBw('POINTS');
+  // decrease all pixels by 0.002
+  hmRenderer.age(0.002);
+```
