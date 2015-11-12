@@ -1,4 +1,4 @@
-/*! wegli 0.0.5 16-01-2015 */
+/*! wegli 0.0.5 06-11-2015 */
 /*! Author: Florian Markert */
 /*! License: MIT */
 /* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */

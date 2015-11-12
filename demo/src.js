@@ -1,27 +1,12 @@
 /* global createWebglContext, attachPloygonShader, attachWaterfallShader, attachHeatmapShader, attachTextureShader */
 $(document).ready(function () {
   'use strict';
-  var lineCanvas = document.getElementById('linectx');
-  var hmCanvas = document.getElementById('hmctx');
   var wfCanvas = document.getElementById('wfctx');
-  var teCanvas = document.getElementById('tectx');
+  var lineCanvas = document.getElementById('linectx');
+  var lineCanvas2 = document.getElementById('linectx2');
   var cnt;
-  var w = 256,
-    h = 256;
-
-  var ctx = createWebglContext(lineCanvas, {
-    types: ['webgl', 'experimental-webgl'],
-    attrs: {
-      antialias: true
-    }
-  });
-
-  var ctxh = createWebglContext(hmCanvas, {
-    types: ['webgl', 'experimental-webgl'],
-    attrs: {
-      antialias: true
-    }
-  });
+  var w = 512,
+    h = 258;
 
   var ctxw = createWebglContext(wfCanvas, {
     types: ['webgl', 'experimental-webgl'],
@@ -30,7 +15,14 @@ $(document).ready(function () {
     }
   });
 
-  var ctxt = createWebglContext(teCanvas, {
+  var ctx = createWebglContext(lineCanvas, {
+    types: ['webgl', 'experimental-webgl'],
+    attrs: {
+      antialias: true
+    }
+  });
+
+  var ctxf = createWebglContext(lineCanvas2, {
     types: ['webgl', 'experimental-webgl'],
     attrs: {
       antialias: true
@@ -38,16 +30,12 @@ $(document).ready(function () {
   });
 
   var lineRenderer = attachPloygonShader(ctx);
-  var hmRenderer = attachHeatmapShader(ctxh, {
-    x: w,
-    y: h
-  });
-  hmRenderer.setPointSize(3);
+  var fftRenderer = attachPloygonShader(ctxf);
+
   var wfRenderer = attachWaterfallShader(ctxw, {
     x: w,
     y: h
   });
-  var teRenderer = attachTextureShader(ctxt);
   /*wfRenderer.transform({
      translate: {
        x: -0.3,
@@ -80,109 +68,126 @@ $(document).ready(function () {
     return 1;
   };
 
-  var textStyle = {
-    font: '18px/30px Arial, serif',
-    fill: '#000000',
-    stroke: '#000000',
-    plane: 'n',
-    pos: [0.0, 0.0, 0.0]
-  };
-  teRenderer.setTextureSize(256, 256);
-  var fft = new Fft(512);
-  var frequency = 512 * Math.random();
-  var frequency2 = 512 * Math.random();
+  var frequency = 6;
+  var amplitude = 1;
+  var amplitude2 = -0.02;
+  var frequency2 = 200;
+
+  var fft = new Fili.Fft(512);
 
   var fftArray = [];
 
+  var wcalc = new Fili.Wt({
+    bufferSize: 10000,
+    depth: 4
+  });
+
+  var samples = 512;
+
+  wcalc.enableDWT();
+
+  Array.prototype.max = function () {
+    return Math.max.apply(null, this);
+  };
+
+  Array.prototype.min = function () {
+    return Math.min.apply(null, this);
+  };
+
+  var fillData = function (wb) {
+    var d = [];
+    for (var cnt = 0; cnt < wb.length; cnt++) {
+      d[cnt] = [];
+      for (var ccnt = 0; ccnt < wb[cnt].lowpassPointer / 1; ccnt++) {
+        var temp = wb[cnt].highpassData[ccnt] / (Math.pow(2, cnt));
+        if ((temp >= 0 && temp < 0.001) || (temp < 0 && temp > -0.001)) {
+          temp = 0;
+        }
+        //temp = temp / (wb[wb.length-1].lowpassData[0]);
+        temp += 0.5;
+        for (var xcnt = 0; xcnt < Math.pow(2, cnt); xcnt++) {
+          d[cnt].push(temp);
+        }
+      }
+    }
+    return d;
+
+  }
+
+  var p = [];
+  var c = [];
+  var fp = [];
+  var fc = [];
+  var drawArray = [];
+  drawArray.length = 2 * samples;
+
   var run = function () {
     fftArray.length = 0;
-    for (cnt = 0; cnt < 512; cnt++) {
-      fftArray.push(Math.sin(frequency * Math.PI * (phaseShift + (cnt) / (512))) + Math.sin(frequency2 * Math.PI * (phaseShift + (cnt) / (512))));
+    for (cnt = 0; cnt < samples; cnt++) {
+      fftArray.push(amplitude * Math.sin(frequency * Math.PI * (phaseShift + (cnt) / (512))) + amplitude2 * Math.sin(frequency2 * Math.PI * (phaseShift + (cnt) / (512))));
     }
+    p.length = 0;
+    c.length = 0;
+    for (var i = 0; i < samples; i++) {
+      drawArray[i] = drawArray[i + samples];
+      drawArray[i + samples] = fftArray[i];
+    }
+
     var res = fft.forward(fftArray, 'hanning');
-    res[0] = 0;
-    res[511] = 0;
     var db = fft.magToDb(fft.magnitude(res));
     var max = -Number.MAX_VALUE;
-    for (cnt = 0; cnt < 512; cnt++) {
+    for (cnt = 0; cnt < w; cnt++) {
       if (db[cnt] > max) {
         max = db[cnt];
       }
     }
-    for (cnt = 0; cnt < 512; cnt++) {
+    for (cnt = 0; cnt < w; cnt++) {
       db[cnt] -= max;
     }
-    var time = getTime();
-    textStyle.pos = [-0.2, 0.0, 0.0];
-    teRenderer.writeText('ms per Fame', textStyle);
-    textStyle.pos = [0.6, 0.0, 0.0];
-    teRenderer.writeText('' + (num).toFixed(1), textStyle);
-    phaseShift = (phaseShift + Math.PI / w) % (32 * Math.PI);
 
-    // render wave
-    var p = [];
-    var c = [];
-    for (cnt = 0; cnt < w; cnt++) {
-      p.push((2 * cnt) / (w) - 1);
-      p.push(Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w))));
-      c.push(cnt / w);
-      c.push((w - cnt) / w);
-      c.push(cnt / w);
+    for (cnt = 0; cnt < 2 * w; cnt++) {
+      p.push((2 * cnt) / (w * 2) - 1);
+      fp.push((2 * cnt) / (w * 2) - 1);
+      p.push(drawArray[cnt] / 2);
+      fp.push(db[Math.floor(cnt / 4)] / 180);
+      c.push(0);
+      c.push(0);
+      c.push(0);
     }
     lineRenderer.draw(p, c, 'LINE_STRIP');
-    // render heatmap wave
-    hmRenderer.age(0.015);
-    var i = 0.5;
+    fftRenderer.draw(fp, c, 'LINE_STRIP');
 
-    var yPrev = (Math.sin(2 * Math.PI * (phaseShift + (0) / (w)) + Math.PI) * w / 2 + w / 2);
-    for (cnt = 1; cnt < w; cnt++) {
-      var x = cnt;
-      var y = (Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w)) + Math.PI) * w / 2 + w / 2);
-      var yDiff = y - yPrev;
-      for (var j = 0; j <= Math.ceil(Math.abs(yDiff)); j++) {
-        if (yDiff >= 0) {
-          hmRenderer.setPixel(x, Math.floor(y + j), i);
-        } else if (yDiff < 0) {
-          hmRenderer.setPixel(x, Math.floor(y - j), i);
+    fp.length = 0;
+    fc.length = 0;
+
+
+
+    phaseShift = (phaseShift + Math.PI / (4 * w)) % (512 * Math.PI);
+    //  wcalc.pushData(fftArray.slice(fftArray.length/2));
+    //wcalc.setPushBufferPosition(2048);
+    wcalc.pushData(fftArray);
+    if (wcalc.bufferLength() > 2000) {
+    wcalc.clearSamples(800);
+    }
+
+    var wxd = wcalc.calculate();
+
+    var wdata = fillData(wxd);
+    for (var cnt = 0; cnt < wdata[0].length; cnt++) {
+      var pd = [];
+      for (var i = wdata.length - 1; i > -1; --i) {
+        for (var k = 0; k < 258 / wdata.length; k++) {
+          pd.push(wdata[i][cnt]);
         }
       }
-      yPrev = y;
+      wfRenderer.setColumn(pd);
     }
-    hmRenderer.drawC('POINTS');
+    //wfRenderer.setColumn(d);
+    wfRenderer.drawBw('POINTS');
 
-    // render waterfall
-    var d = [];
-    for (cnt = 0; cnt < h; cnt++) {
-      d[cnt] = (180 + db[cnt]) / 180;
-    }
-    var sign = Math.random();
-    if (sign > 0.5) {
-      phaseDrift += Math.random() / 500 * Math.PI;
-      ampl += (Math.random() / 50);
-      frequency = (frequency - 1) % 512;
-      frequency2 = (frequency2 - 0.5) % 512;
-    } else {
-      phaseDrift -= Math.random() / 500 * Math.PI;
-      ampl -= (Math.random() / 50);
-      frequency = (frequency + 0.5) % 512;
-      frequency2 = (frequency2 + 1) % 512;
-    }
-    if (ampl > 1) {
-      ampl = 1;
-    } else if (ampl < 0) {
-      ampl = 0;
-    }
-    wfRenderer.setColumn(d);
-    wfRenderer.drawC('POINTS');
-    var tnum = getTime() - time;
-    if (num === 0) {
-      num = 10;
-    } else {
-      num = tnum * 0.04 + num * 0.96;
-    }
     setTimeout(function () {
       requestAnimationFrame(run);
-    }, 30);
+    }, 50);
   };
   requestAnimationFrame(run);
 });
