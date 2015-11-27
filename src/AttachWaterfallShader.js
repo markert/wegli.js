@@ -39,6 +39,7 @@
       }
       ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
       ctx.bufferData(ctx.ARRAY_BUFFER, buffer.vertices, ctx.DYNAMIC_DRAW);
+      var subDataArray = new Float32Array(3 * height);
       buffer.setColumn = function (d) {
         ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
         var arrayByteSize = buffer.arraySize * 12;
@@ -50,14 +51,13 @@
             d[i] = 0;
           }
         }
-        for (i = 0; i < height; i++) {
-          var data = new Float32Array(3);
-          data[0] = buffer.xOffset + 1;
-          data[1] = (i * 2 / d.length) - 1;
-          data[2] = -d[i];
-          ctx.bufferSubData(ctx.ARRAY_BUFFER, (offset + i * 12) % arrayByteSize, data);
-        }
 
+        for (i = 0; i < height; i++) {
+          subDataArray[0 + 3 * i] = buffer.xOffset + 1;
+          subDataArray[1 + 3 * i] = (i * 2 / d.length) - 1;
+          subDataArray[2 + 3 * i] = -d[i];
+        }
+        ctx.bufferSubData(ctx.ARRAY_BUFFER, (offset) % arrayByteSize, subDataArray);
         buffer.columnPointer = (buffer.columnPointer + 1) % width;
         buffer.xOffset += buffer.speed;
       };
