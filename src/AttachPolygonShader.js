@@ -26,9 +26,9 @@
     var self = {
       draw: function (p, c, type) {
         ctx.useProgram(program);
-        fillGraphicsArray(program.position, p, positionBuffer, 2);
+        fillGraphicsArray(program.position, p, positionBuffer, 3);
         fillGraphicsArray(program.color, c, colorBuffer, 3);
-        render(ctx[type], p.length / 2);
+        render(ctx[type], p.length / 3);
       },
       transform: function (params) {
         wParams.transformValues = params;

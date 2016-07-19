@@ -15,12 +15,12 @@
        * for fancy effects you could do math on the position attribute
        */
       vertex: '\n\
-attribute vec2 position;\n\
+attribute vec3 position;\n\
 attribute vec3 color;\n\
 varying vec3 vc;\n\
 uniform mat4 uPMatrix;\n\
 void main(void) {\n\
-gl_Position = vec4(position, 0., 1.);\n\
+gl_Position = vec4(position, 1.);\n\
 gl_PointSize = 2.0;\n\
 vc=color;\n\
 }',

@@ -125,6 +125,7 @@ $(document).ready(function () {
     for (cnt = 0; cnt < w; cnt++) {
       p.push((2 * cnt) / (w) - 1);
       p.push(Math.sin(2 * Math.PI * (phaseShift + (cnt) / (w))));
+      p.push(0.);
       c.push(cnt / w);
       c.push((w - cnt) / w);
       c.push(cnt / w);

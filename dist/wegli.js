@@ -1,4 +1,4 @@
-/*! wegli 0.0.6 27-11-2015 */
+/*! wegli 0.0.6 19-07-2016 */
 /*! Author: Florian Markert */
 /*! License: MIT */
 /* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */
@@ -242,12 +242,12 @@ gl_FragColor = vec4(cs, 1.);\n\
        * for fancy effects you could do math on the position attribute
        */
       vertex: '\n\
-attribute vec2 position;\n\
+attribute vec3 position;\n\
 attribute vec3 color;\n\
 varying vec3 vc;\n\
 uniform mat4 uPMatrix;\n\
 void main(void) {\n\
-gl_Position = vec4(position, 0., 1.);\n\
+gl_Position = vec4(position, 1.);\n\
 gl_PointSize = 2.0;\n\
 vc=color;\n\
 }',
@@ -386,9 +386,9 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
     var self = {
       draw: function (p, c, type) {
         ctx.useProgram(program);
-        fillGraphicsArray(program.position, p, positionBuffer, 2);
+        fillGraphicsArray(program.position, p, positionBuffer, 3);
         fillGraphicsArray(program.color, c, colorBuffer, 3);
-        render(ctx[type], p.length / 2);
+        render(ctx[type], p.length / 3);
       },
       transform: function (params) {
         wParams.transformValues = params;
