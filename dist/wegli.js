@@ -1,6 +1,6 @@
 /**
  * @name    wegli
- * @version 0.0.7 | November 21st 2018
+ * @version 0.0.8 | November 21st 2018
  * @author  Florian Markert
  * @license MIT
  */
@@ -117,7 +117,6 @@
     }
   }
 })(window);
-
 },{}],2:[function(require,module,exports){
 /* global define, PolygonShader */
 /*jslint bitwise: true */
@@ -167,7 +166,6 @@
     }
   }
 })(window);
-
 },{}],3:[function(require,module,exports){
 /* global define, initWebgl, TextureShader */
 /*jslint bitwise: true */
@@ -385,7 +383,6 @@
     }
   }
 })(window);
-
 },{}],4:[function(require,module,exports){
 /* global define, initWebgl, HeatmapShader, getTransformationMatrix */
 /*jslint bitwise: true */
@@ -502,7 +499,6 @@
     }
   }
 })(window);
-
 },{}],5:[function(require,module,exports){
 /* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */
 'use strict';
@@ -617,7 +613,6 @@ var initWebgl = function (webglParams) {
   };
   webglParams.transformCoordinates = getTransformationMatrix(webglParams.transformValues);
 };
-
 },{}],6:[function(require,module,exports){
 /* global define, compileProgram */
 /*jshint multistr: true */
@@ -730,7 +725,6 @@ gl_FragColor = vec4(cs, 1.);\n\
     }
   }
 })(window);
-
 },{}],7:[function(require,module,exports){
 /* global define, compileProgram */
 /*jshint multistr: true */
@@ -795,7 +789,6 @@ gl_FragColor = vec4(vc, 1.);\n\
     }
   }
 })(window);
-
 },{}],8:[function(require,module,exports){
 /* global define, compileProgram */
 /*jshint multistr: true */
@@ -867,5 +860,4 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
     }
   }
 })(window);
-
 },{}]},{},[1,2,3,4,5,6,7,8]);
