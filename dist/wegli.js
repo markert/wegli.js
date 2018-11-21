@@ -1,412 +1,11 @@
-/*! wegli 0.0.6 19-07-2016 */
-/*! Author: Florian Markert */
-/*! License: MIT */
-/* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */
-'use strict';
-
-var getShader = function (ctx, source, type) {
-  var shader = ctx.createShader(type);
-  ctx.shaderSource(shader, source);
-  ctx.compileShader(shader);
-  return shader;
-};
-
-var compileProgram = function (ctx, vertex, fragment) {
-  var vs = getShader(ctx, vertex, ctx.VERTEX_SHADER);
-  var fs = getShader(ctx, fragment, ctx.FRAGMENT_SHADER);
-  var program = ctx.createProgram();
-  ctx.attachShader(program, vs);
-  ctx.attachShader(program, fs);
-  ctx.linkProgram(program);
-  return program;
-};
-
-var createWebglContext = function (canvas, params) {
-  var ctx;
-  for (var cnt = 0; cnt < params.types.length; cnt++) {
-    try {
-      ctx = canvas.getContext(params.types[cnt], params.attrs);
-    } catch (e) {}
-    if (ctx) {
-      return ctx;
-    }
-  }
-  return null;
-};
-
-// standard matrix transformation
-// mixes viewport and object transformation
-
-var getTransformationMatrix = function (params) {
-  var tx = params.translate.x,
-    ty = params.translate.y,
-    tz = params.translate.z,
-    rx = params.rotate.x,
-    ry = params.rotate.y,
-    rz = params.rotate.z,
-    sc = params.scaling,
-    di = params.distance,
-    pf = params.plane.far,
-    pn = params.plane.near,
-    ar = params.aspectRatio;
-  var cx = Math.cos(rx),
-    sx = Math.sin(rx),
-    cy = Math.cos(ry),
-    sy = Math.sin(ry),
-    cz = Math.cos(rz),
-    sz = Math.sin(rz);
-  if (di <= -pn) {
-    // orthographic projection
-    // parallelism is preserved
-    return new Float32Array([
-      (cy * cz * sc) / ar,
-      cy * sc * sz, -sc * sy,
-      0, (sc * (cz * sx * sy - cx * sz)) / ar,
-      sc * (sx * sy * sz + cx * cz), cy * sc * sx,
-      0, (sc * (sx * sz + cx * cz * sy)) / ar,
-      sc * (cx * sy * sz - cz * sx), cx * cy * sc,
-      0, (sc * (cz * ((-ty * sx - cx * tz) * sy - cy * tx) - (tz * sx - cx * ty) * sz)) / ar,
-      sc * (((-ty * sx - cx * tz) * sy - cy * tx) * sz + cz * (tz * sx - cx * ty)),
-      sc * (tx * sy + cy * (-ty * sx - cx * tz)),
-      1
-    ]);
-  } else {
-    // perspective projection
-    // real world
-    var A = di;
-    var B = (pn + pf + 2 * di) / (pf - pn);
-    var C = -(di * (2 * pn + 2 * pf) + 2 * pf * pn + 2 * di * di) / (pf - pn);
-    return new Float32Array([
-      (cy * cz * sc * A) / ar,
-      cy * sc * sz * A, -sc * sy * B, -sc * sy, (sc * (cz * sx * sy - cx * sz) * A) / ar,
-      sc * (sx * sy * sz + cx * cz) * A,
-      cy * sc * sx * B,
-      cy * sc * sx, (sc * (sx * sz + cx * cz * sy) * A) / ar,
-      sc * (cx * sy * sz - cz * sx) * A,
-      cx * cy * sc * B,
-      cx * cy * sc, (sc * (cz * ((-ty * sx - cx * tz) * sy - cy * tx) - (tz * sx - cx * ty) * sz) * A) / ar,
-      sc * (((-ty * sx - cx * tz) * sy - cy * tx) * sz + cz * (tz * sx - cx * ty)) * A,
-      C + (sc * (tx * sy + cy * (-ty * sx - cx * tz)) + di) * B,
-      sc * (tx * sy + cy * (-ty * sx - cx * tz)) + di
-    ]);
-  }
-};
-
-var initWebgl = function (webglParams) {
-  webglParams.transformValues = {
-    translate: {
-      x: 0,
-      y: 0,
-      z: 0
-    },
-    rotate: {
-      x: 0.0,
-      y: 0.0,
-      z: 0.0
-    },
-    aspectRatio: 1,
-    scaling: 1.0,
-    distance: 1.0,
-    plane: {
-      far: 1,
-      near: -1
-    }
-  };
-  webglParams.transformCoordinates = getTransformationMatrix(webglParams.transformValues);
-};
-;/* global define, compileProgram */
-/*jshint multistr: true */
-(function (window) {
-  'use strict';
-
-  var HeatmapShader = function () {
-    var shaders = {
-      vertexFloating: '\n\
-attribute vec3 position;\n\
-uniform float shift;\n\
-uniform float ps;\n\
-varying float height;\n\
-uniform mat4 uPMatrix;\n\
-void main(void) {\n\
-gl_Position = uPMatrix * vec4(position.x - shift, position.y, position.z, 1.);\n\
-height=-4.0*position.z;\n\
-gl_PointSize = ps;\n\
-}',
-      vertexAging: '\n\
-attribute vec3 position;\n\
-attribute float birth;\n\
-varying float height;\n\
-uniform mat4 uPMatrix;\n\
-uniform float ps;\n\
-uniform float date;\n\
-void main(void) {\n\
-float zpos = position.z+date-birth;\n\
-if (zpos > 0.0) zpos = 0.0;\n\
-if (zpos < -2.0) zpos = -2.0;\n\
-gl_Position = uPMatrix * vec4(position.x, position.y, zpos, 1.);\n\
-height=-4.0*zpos;\n\
-gl_PointSize = ps;\n\
-}',
-      fragmentColor: '\n\
-precision mediump float;\n\
-varying float height;\n\
-void main(void) {\n\
-vec3 cs = vec3(0.5,0,0);\n\
-if (0.0 <= height && height <= 0.5) cs = vec3(0,0,height+0.5);\n\
-else if (0.5 < height && height <= 1.5) cs = vec3(0,height-0.5,1);\n\
-else if (1.5 < height && height <= 2.5) cs = vec3(height-1.5,1,2.5-height);\n\
-else if (2.5 < height && height <= 3.5) cs = vec3(1,3.5-height,0);\n\
-else if (3.5 < height && height <= 4.0) cs = vec3(4.5-height,0,0);\n\
-gl_FragColor = vec4(cs, 1.);\n\
-}',
-      fragmentBw: '\n\
-precision mediump float;\n\
-varying float height;\n\
-void main(void) {\n\
-vec3 cs = vec3(height/4.0,height/4.0,height/4.0);\n\
-gl_FragColor = vec4(cs, 1.);\n\
-}'
-    };
-
-    var self = {
-      getHeatmapShader: function (ctx, coloring) {
-        var fs = shaders.fragmentBw;
-        if (coloring) {
-          fs = shaders.fragmentColor;
-        }
-        var ps = compileProgram(ctx, shaders.vertexAging, fs);
-        ps.position = ctx.getAttribLocation(ps, 'position');
-        ps.birth = ctx.getAttribLocation(ps, 'birth');
-        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
-        ps.pointSize = ctx.getUniformLocation(ps, 'ps');
-        ps.date = ctx.getUniformLocation(ps, 'date');
-        ctx.enableVertexAttribArray(ps.position);
-        ctx.enableVertexAttribArray(ps.birth);
-        if (!ctx.myPrograms) {
-          ctx.myPrograms = {};
-        }
-        if (coloring) {
-          ctx.myPrograms.heatmapShaderC = ps;
-        } else {
-          ctx.myPrograms.heatmapShaderBw = ps;
-        }
-
-      },
-      getFloatingShader: function (ctx, coloring) {
-        var fs = shaders.fragmentBw;
-        if (coloring) {
-          fs = shaders.fragmentColor;
-        }
-        var ps = compileProgram(ctx, shaders.vertexFloating, fs);
-        ps.position = ctx.getAttribLocation(ps, 'position');
-        ps.shift = ctx.getUniformLocation(ps, 'shift');
-        ps.pointSize = ctx.getUniformLocation(ps, 'ps');
-        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
-        ctx.enableVertexAttribArray(ps.position);
-        ctx.enableVertexAttribArray(ps.currentShift);
-        if (!ctx.myPrograms) {
-          ctx.myPrograms = {};
-        }
-        if (coloring) {
-          ctx.myPrograms.floatingShaderC = ps;
-        } else {
-          ctx.myPrograms.floatingShaderBw = ps;
-        }
-      }
-    };
-    return self;
-  };
-  if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = HeatmapShader;
-  } else {
-    window.HeatmapShader = HeatmapShader;
-    if (typeof define === 'function' && define.amd) {
-      define(HeatmapShader);
-    }
-  }
-})(window);
-;/* global define, compileProgram */
-/*jshint multistr: true */
-(function (window) {
-  'use strict';
-
-  var PolygonShader = function () {
-    var shaders = {
-      /*
-       * The vertex shader defines the position of a vertex
-       * since we draw a plot, position needs only two dimensions
-       * color is RGB amd uses three dimensions
-       * data is passed to this shader and can be shared with the
-       * fragment shader by using 'varying'
-       * gl_Position and gl_PointSize define the screen output
-       * for fancy effects you could do math on the position attribute
-       */
-      vertex: '\n\
-attribute vec3 position;\n\
-attribute vec3 color;\n\
-varying vec3 vc;\n\
-uniform mat4 uPMatrix;\n\
-void main(void) {\n\
-gl_Position = vec4(position, 1.);\n\
-gl_PointSize = 2.0;\n\
-vc=color;\n\
-}',
-      /*
-       * the fragment shader colors and textures points and areas
-       * glFragColor is the color of the resulting point
-       * the desired color is in vc from the vertex shader
-       */
-      fragment: '\n\
-precision mediump float;\n\
-varying vec3 vc;\n\
-void main(void) {\n\
-gl_FragColor = vec4(vc, 1.);\n\
-}'
-    };
-    var self = {
-      getShader: function (ctx) {
-        var ps = compileProgram(ctx, shaders.vertex, shaders.fragment);
-        ps.color = ctx.getAttribLocation(ps, 'color');
-        ps.position = ctx.getAttribLocation(ps, 'position');
-        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
-        ctx.enableVertexAttribArray(ps.color);
-        ctx.enableVertexAttribArray(ps.position);
-        if (!ctx.myPrograms) {
-          ctx.myPrograms = {};
-        }
-        ctx.myPrograms.polygonShader = ps;
-      }
-    };
-    return self;
-  };
-  if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = PolygonShader;
-  } else {
-    window.PolygonShader = PolygonShader;
-    if (typeof define === 'function' && define.amd) {
-      define(PolygonShader);
-    }
-  }
-})(window);
-;/* global define, compileProgram */
-/*jshint multistr: true */
-(function (window) {
-  'use strict';
-
-  var TextureShader = function () {
-    var shaders = {
-      vertex2d: '\n\
-attribute vec3 position;\n\
-attribute vec4 inputTextureCoordinate;\n\
-varying vec2 textureCoordinate;\n\
-void main(void) {\n\
-gl_Position = vec4(position, 1.);\n\
-textureCoordinate = inputTextureCoordinate.xy;\n\
-}',
-      vertex3d: '\n\
-attribute vec3 position;\n\
-attribute vec4 inputTextureCoordinate;\n\
-uniform mat4 uPMatrix;\n\
-varying vec2 textureCoordinate;\n\
-void main(void) {\n\
-gl_Position = uPMatrix * vec4(position, 1.);\n\
-textureCoordinate = inputTextureCoordinate.xy;\n\
-}',
-      fragment: '\n\
-precision mediump float;\n\
-varying vec2 textureCoordinate;\n\
-uniform sampler2D uSampler;\n\
-void main(void) {\n\
-gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
-}'
-    };
-    var self = {
-      getShader3d: function (ctx) {
-        var ps = compileProgram(ctx, shaders.vertex3d, shaders.fragment);
-        ps.texCoord = ctx.getAttribLocation(ps, 'inputTextureCoordinate');
-        ps.texPos = ctx.getAttribLocation(ps, 'position');
-        ps.sampler = ctx.getUniformLocation(ps, 'uSampler');
-        ps.pMatrixUniform = ctx.getUniformLocation(ps, 'uPMatrix');
-        ctx.enableVertexAttribArray(ps.texCoord);
-        ctx.enableVertexAttribArray(ps.texPos);
-        if (!ctx.myPrograms) {
-          ctx.myPrograms = {};
-        }
-        ctx.myPrograms.textureShader3d = ps;
-      },
-      getShader2d: function (ctx) {
-        var ps = compileProgram(ctx, shaders.vertex2d, shaders.fragment);
-        ps.texCoord = ctx.getAttribLocation(ps, 'inputTextureCoordinate');
-        ps.texPos = ctx.getAttribLocation(ps, 'position');
-        ps.sampler = ctx.getUniformLocation(ps, 'uSampler');
-        ctx.enableVertexAttribArray(ps.texCoord);
-        ctx.enableVertexAttribArray(ps.texPos);
-        if (!ctx.myPrograms) {
-          ctx.myPrograms = {};
-        }
-        ctx.myPrograms.textureShader2d = ps;
-      }
-    };
-    return self;
-  };
-  if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = TextureShader;
-  } else {
-    window.TextureShader = TextureShader;
-    if (typeof define === 'function' && define.amd) {
-      define(TextureShader);
-    }
-  }
-})(window);
-;/* global define, PolygonShader */
-/*jslint bitwise: true */
-(function (window) {
-  'use strict';
-
-  var attachPloygonShader = function (ctx) {
-    ctx.depthFunc(ctx.LEQUAL);
-    new PolygonShader().getShader(ctx);
-    var program = ctx.myPrograms.polygonShader;
-    var positionBuffer = ctx.createBuffer();
-    var colorBuffer = ctx.createBuffer();
-    var wParams = {};
-    initWebgl(wParams);
-
-    var fillGraphicsArray = function (p, d, b, l) {
-      ctx.bindBuffer(ctx.ARRAY_BUFFER, b);
-      ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(d), ctx.STATIC_DRAW);
-      ctx.vertexAttribPointer(p, l, ctx.FLOAT, false, 0, 0);
-    };
-
-    var render = function (type, length) {
-      ctx.lineWidth(3);
-      ctx.uniformMatrix4fv(program.transformation, false, wParams.transformCoordinates);
-      ctx.drawArrays(type, 0, length);
-    };
-    var self = {
-      draw: function (p, c, type) {
-        ctx.useProgram(program);
-        fillGraphicsArray(program.position, p, positionBuffer, 3);
-        fillGraphicsArray(program.color, c, colorBuffer, 3);
-        render(ctx[type], p.length / 3);
-      },
-      transform: function (params) {
-        wParams.transformValues = params;
-        wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
-      }
-    };
-    return self;
-  };
-  if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = attachPloygonShader;
-  } else {
-    window.attachPloygonShader = attachPloygonShader;
-    if (typeof define === 'function' && define.amd) {
-      define(attachPloygonShader);
-    }
-  }
-})(window);
-;/* global define, initWebgl, HeatmapShader, getTransformationMatrix */
+/**
+ * @name    wegli
+ * @version 0.0.7 | November 21st 2018
+ * @author  Florian Markert
+ * @license MIT
+ */
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+/* global define, initWebgl, HeatmapShader, getTransformationMatrix */
 /*jslint bitwise: true */
 (function (window) {
   'use strict';
@@ -518,122 +117,59 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
     }
   }
 })(window);
-;/* global define, initWebgl, HeatmapShader, getTransformationMatrix */
+
+},{}],2:[function(require,module,exports){
+/* global define, PolygonShader */
 /*jslint bitwise: true */
 (function (window) {
   'use strict';
 
-  var attachWaterfallShader = function (ctx, dimensions) {
+  var attachPloygonShader = function (ctx) {
+    ctx.depthFunc(ctx.LEQUAL);
+    new PolygonShader().getShader(ctx);
+    var program = ctx.myPrograms.polygonShader;
+    var positionBuffer = ctx.createBuffer();
+    var colorBuffer = ctx.createBuffer();
     var wParams = {};
     initWebgl(wParams);
-    new HeatmapShader().getFloatingShader(ctx, false);
-    new HeatmapShader().getFloatingShader(ctx, true);
-    var programC = ctx.myPrograms.floatingShaderC;
-    var programBw = ctx.myPrograms.floatingShaderBw;
-    var particleBuffer = ctx.createBuffer();
-    var buffer = {};
-    buffer.setColumn = function () {};
-    buffer.pointSize = 1.0;
 
-    var initBuffer = function (width, height) {
-      var shift = 0;
-      var pointer = 0;
-
-      buffer.xOffset = 0;
-      buffer.speed = 2 / width;
-      buffer.columnPointer = 0;
-      buffer.arraySize = 3 * width * height;
-      buffer.vertices = new Float32Array(buffer.arraySize);
-      for (var cnt = 0; cnt < width; cnt++) {
-        var s = pointer;
-        shift -= 2 / width;
-        for (var i = 0; i < height; i++) {
-          var data = new Float32Array(3);
-          data[0] = 0;
-          data[1] = 0;
-          data[2] = 0;
-          pointer = (s + i * 3) % (buffer.arraySize);
-          buffer.vertices.set(data, pointer);
-        }
-        pointer = (s + height * 3) % (buffer.arraySize);
-      }
-      ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
-      ctx.bufferData(ctx.ARRAY_BUFFER, buffer.vertices, ctx.DYNAMIC_DRAW);
-      var subDataArray = new Float32Array(3 * height);
-      buffer.setColumn = function (d) {
-        ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
-        var arrayByteSize = buffer.arraySize * 12;
-        var offset = buffer.columnPointer * height * 12;
-        var i = 0;
-        if (d.length < height) {
-          d.length = height;
-          for (i = d.length; i < height; i++) {
-            d[i] = 0;
-          }
-        }
-
-        for (i = 0; i < height; i++) {
-          subDataArray[0 + 3 * i] = buffer.xOffset + 1;
-          subDataArray[1 + 3 * i] = (i * 2 / d.length) - 1;
-          subDataArray[2 + 3 * i] = -d[i];
-        }
-        ctx.bufferSubData(ctx.ARRAY_BUFFER, (offset) % arrayByteSize, subDataArray);
-        buffer.columnPointer = (buffer.columnPointer + 1) % width;
-        buffer.xOffset += buffer.speed;
-      };
-    };
-
-    if (dimensions) {
-      initBuffer(dimensions.x, dimensions.y);
-    } else {
-      initBuffer(100, 100);
-    }
-
-    var render = function (type, b, p) {
-      ctx.useProgram(p);
-      ctx.blendFunc(ctx.SRC_ALPHA, ctx.ONE);
-      ctx.enable(ctx.DEPTH_TEST);
+    var fillGraphicsArray = function (p, d, b, l) {
       ctx.bindBuffer(ctx.ARRAY_BUFFER, b);
-
-      ctx.vertexAttribPointer(p.position, 3, ctx.FLOAT, false, 12, 0);
-      ctx.lineWidth(1);
-      ctx.uniform1f(p.shift, buffer.xOffset);
-      ctx.uniformMatrix4fv(p.transformation, false, wParams.transformCoordinates);
-      ctx.uniform1f(p.pointSize, buffer.pointSize);
-      ctx.drawArrays(ctx[type], 0, buffer.arraySize / 3);
+      ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(d), ctx.STATIC_DRAW);
+      ctx.vertexAttribPointer(p, l, ctx.FLOAT, false, 0, 0);
     };
 
+    var render = function (type, length) {
+      ctx.lineWidth(3);
+      ctx.uniformMatrix4fv(program.transformation, false, wParams.transformCoordinates);
+      ctx.drawArrays(type, 0, length);
+    };
     var self = {
-      reinitBuffer: function (w, h) {
-        return initBuffer(w, h);
+      draw: function (p, c, type) {
+        ctx.useProgram(program);
+        fillGraphicsArray(program.position, p, positionBuffer, 3);
+        fillGraphicsArray(program.color, c, colorBuffer, 3);
+        render(ctx[type], p.length / 3);
       },
       transform: function (params) {
         wParams.transformValues = params;
         wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
-      },
-      drawBw: function (type) {
-        render(type, particleBuffer, programBw);
-      },
-      drawC: function (type) {
-        render(type, particleBuffer, programC);
-      },
-      setColumn: buffer.setColumn,
-      setPointSize: function (ps) {
-        buffer.pointSize = ps;
       }
     };
     return self;
   };
   if (typeof module === 'object' && module && typeof module.exports === 'object') {
-    module.exports = attachWaterfallShader;
+    module.exports = attachPloygonShader;
   } else {
-    window.attachWaterfallShader = attachWaterfallShader;
+    window.attachPloygonShader = attachPloygonShader;
     if (typeof define === 'function' && define.amd) {
-      define(attachWaterfallShader);
+      define(attachPloygonShader);
     }
   }
 })(window);
-;/* global define, initWebgl, TextureShader */
+
+},{}],3:[function(require,module,exports){
+/* global define, initWebgl, TextureShader */
 /*jslint bitwise: true */
 (function (window) {
   'use strict';
@@ -849,3 +385,487 @@ gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
     }
   }
 })(window);
+
+},{}],4:[function(require,module,exports){
+/* global define, initWebgl, HeatmapShader, getTransformationMatrix */
+/*jslint bitwise: true */
+(function (window) {
+  'use strict';
+
+  var attachWaterfallShader = function (ctx, dimensions) {
+    var wParams = {};
+    initWebgl(wParams);
+    new HeatmapShader().getFloatingShader(ctx, false);
+    new HeatmapShader().getFloatingShader(ctx, true);
+    var programC = ctx.myPrograms.floatingShaderC;
+    var programBw = ctx.myPrograms.floatingShaderBw;
+    var particleBuffer = ctx.createBuffer();
+    var buffer = {};
+    buffer.setColumn = function () {};
+    buffer.pointSize = 1.0;
+
+    var initBuffer = function (width, height) {
+      var shift = 0;
+      var pointer = 0;
+
+      buffer.xOffset = 0;
+      buffer.speed = 2 / width;
+      buffer.columnPointer = 0;
+      buffer.arraySize = 3 * width * height;
+      buffer.vertices = new Float32Array(buffer.arraySize);
+      for (var cnt = 0; cnt < width; cnt++) {
+        var s = pointer;
+        shift -= 2 / width;
+        for (var i = 0; i < height; i++) {
+          var data = new Float32Array(3);
+          data[0] = 0;
+          data[1] = 0;
+          data[2] = 0;
+          pointer = (s + i * 3) % (buffer.arraySize);
+          buffer.vertices.set(data, pointer);
+        }
+        pointer = (s + height * 3) % (buffer.arraySize);
+      }
+      ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
+      ctx.bufferData(ctx.ARRAY_BUFFER, buffer.vertices, ctx.DYNAMIC_DRAW);
+      var subDataArray = new Float32Array(3 * height);
+      buffer.setColumn = function (d) {
+        ctx.bindBuffer(ctx.ARRAY_BUFFER, particleBuffer);
+        var arrayByteSize = buffer.arraySize * 12;
+        var offset = buffer.columnPointer * height * 12;
+        var i = 0;
+        if (d.length < height) {
+          d.length = height;
+          for (i = d.length; i < height; i++) {
+            d[i] = 0;
+          }
+        }
+
+        for (i = 0; i < height; i++) {
+          subDataArray[0 + 3 * i] = buffer.xOffset + 1;
+          subDataArray[1 + 3 * i] = (i * 2 / d.length) - 1;
+          subDataArray[2 + 3 * i] = -d[i];
+        }
+        ctx.bufferSubData(ctx.ARRAY_BUFFER, (offset) % arrayByteSize, subDataArray);
+        buffer.columnPointer = (buffer.columnPointer + 1) % width;
+        buffer.xOffset += buffer.speed;
+      };
+    };
+
+    if (dimensions) {
+      initBuffer(dimensions.x, dimensions.y);
+    } else {
+      initBuffer(100, 100);
+    }
+
+    var render = function (type, b, p) {
+      ctx.useProgram(p);
+      ctx.blendFunc(ctx.SRC_ALPHA, ctx.ONE);
+      ctx.enable(ctx.DEPTH_TEST);
+      ctx.bindBuffer(ctx.ARRAY_BUFFER, b);
+
+      ctx.vertexAttribPointer(p.position, 3, ctx.FLOAT, false, 12, 0);
+      ctx.lineWidth(1);
+      ctx.uniform1f(p.shift, buffer.xOffset);
+      ctx.uniformMatrix4fv(p.transformation, false, wParams.transformCoordinates);
+      ctx.uniform1f(p.pointSize, buffer.pointSize);
+      ctx.drawArrays(ctx[type], 0, buffer.arraySize / 3);
+    };
+
+    var self = {
+      reinitBuffer: function (w, h) {
+        return initBuffer(w, h);
+      },
+      transform: function (params) {
+        wParams.transformValues = params;
+        wParams.transformCoordinates = getTransformationMatrix(wParams.transformValues);
+      },
+      drawBw: function (type) {
+        render(type, particleBuffer, programBw);
+      },
+      drawC: function (type) {
+        render(type, particleBuffer, programC);
+      },
+      setColumn: buffer.setColumn,
+      setPointSize: function (ps) {
+        buffer.pointSize = ps;
+      }
+    };
+    return self;
+  };
+  if (typeof module === 'object' && module && typeof module.exports === 'object') {
+    module.exports = attachWaterfallShader;
+  } else {
+    window.attachWaterfallShader = attachWaterfallShader;
+    if (typeof define === 'function' && define.amd) {
+      define(attachWaterfallShader);
+    }
+  }
+})(window);
+
+},{}],5:[function(require,module,exports){
+/* exported compileProgram, createWebglContext, getTransformationMatrix, initWebgl */
+'use strict';
+
+var getShader = function (ctx, source, type) {
+  var shader = ctx.createShader(type);
+  ctx.shaderSource(shader, source);
+  ctx.compileShader(shader);
+  return shader;
+};
+
+var compileProgram = function (ctx, vertex, fragment) {
+  var vs = getShader(ctx, vertex, ctx.VERTEX_SHADER);
+  var fs = getShader(ctx, fragment, ctx.FRAGMENT_SHADER);
+  var program = ctx.createProgram();
+  ctx.attachShader(program, vs);
+  ctx.attachShader(program, fs);
+  ctx.linkProgram(program);
+  return program;
+};
+
+var createWebglContext = function (canvas, params) {
+  var ctx;
+  for (var cnt = 0; cnt < params.types.length; cnt++) {
+    try {
+      ctx = canvas.getContext(params.types[cnt], params.attrs);
+    } catch (e) {}
+    if (ctx) {
+      return ctx;
+    }
+  }
+  return null;
+};
+
+// standard matrix transformation
+// mixes viewport and object transformation
+
+var getTransformationMatrix = function (params) {
+  var tx = params.translate.x,
+    ty = params.translate.y,
+    tz = params.translate.z,
+    rx = params.rotate.x,
+    ry = params.rotate.y,
+    rz = params.rotate.z,
+    sc = params.scaling,
+    di = params.distance,
+    pf = params.plane.far,
+    pn = params.plane.near,
+    ar = params.aspectRatio;
+  var cx = Math.cos(rx),
+    sx = Math.sin(rx),
+    cy = Math.cos(ry),
+    sy = Math.sin(ry),
+    cz = Math.cos(rz),
+    sz = Math.sin(rz);
+  if (di <= -pn) {
+    // orthographic projection
+    // parallelism is preserved
+    return new Float32Array([
+      (cy * cz * sc) / ar,
+      cy * sc * sz, -sc * sy,
+      0, (sc * (cz * sx * sy - cx * sz)) / ar,
+      sc * (sx * sy * sz + cx * cz), cy * sc * sx,
+      0, (sc * (sx * sz + cx * cz * sy)) / ar,
+      sc * (cx * sy * sz - cz * sx), cx * cy * sc,
+      0, (sc * (cz * ((-ty * sx - cx * tz) * sy - cy * tx) - (tz * sx - cx * ty) * sz)) / ar,
+      sc * (((-ty * sx - cx * tz) * sy - cy * tx) * sz + cz * (tz * sx - cx * ty)),
+      sc * (tx * sy + cy * (-ty * sx - cx * tz)),
+      1
+    ]);
+  } else {
+    // perspective projection
+    // real world
+    var A = di;
+    var B = (pn + pf + 2 * di) / (pf - pn);
+    var C = -(di * (2 * pn + 2 * pf) + 2 * pf * pn + 2 * di * di) / (pf - pn);
+    return new Float32Array([
+      (cy * cz * sc * A) / ar,
+      cy * sc * sz * A, -sc * sy * B, -sc * sy, (sc * (cz * sx * sy - cx * sz) * A) / ar,
+      sc * (sx * sy * sz + cx * cz) * A,
+      cy * sc * sx * B,
+      cy * sc * sx, (sc * (sx * sz + cx * cz * sy) * A) / ar,
+      sc * (cx * sy * sz - cz * sx) * A,
+      cx * cy * sc * B,
+      cx * cy * sc, (sc * (cz * ((-ty * sx - cx * tz) * sy - cy * tx) - (tz * sx - cx * ty) * sz) * A) / ar,
+      sc * (((-ty * sx - cx * tz) * sy - cy * tx) * sz + cz * (tz * sx - cx * ty)) * A,
+      C + (sc * (tx * sy + cy * (-ty * sx - cx * tz)) + di) * B,
+      sc * (tx * sy + cy * (-ty * sx - cx * tz)) + di
+    ]);
+  }
+};
+
+var initWebgl = function (webglParams) {
+  webglParams.transformValues = {
+    translate: {
+      x: 0,
+      y: 0,
+      z: 0
+    },
+    rotate: {
+      x: 0.0,
+      y: 0.0,
+      z: 0.0
+    },
+    aspectRatio: 1,
+    scaling: 1.0,
+    distance: 1.0,
+    plane: {
+      far: 1,
+      near: -1
+    }
+  };
+  webglParams.transformCoordinates = getTransformationMatrix(webglParams.transformValues);
+};
+
+},{}],6:[function(require,module,exports){
+/* global define, compileProgram */
+/*jshint multistr: true */
+(function (window) {
+  'use strict';
+
+  var HeatmapShader = function () {
+    var shaders = {
+      vertexFloating: '\n\
+attribute vec3 position;\n\
+uniform float shift;\n\
+uniform float ps;\n\
+varying float height;\n\
+uniform mat4 uPMatrix;\n\
+void main(void) {\n\
+gl_Position = uPMatrix * vec4(position.x - shift, position.y, position.z, 1.);\n\
+height=-4.0*position.z;\n\
+gl_PointSize = ps;\n\
+}',
+      vertexAging: '\n\
+attribute vec3 position;\n\
+attribute float birth;\n\
+varying float height;\n\
+uniform mat4 uPMatrix;\n\
+uniform float ps;\n\
+uniform float date;\n\
+void main(void) {\n\
+float zpos = position.z+date-birth;\n\
+if (zpos > 0.0) zpos = 0.0;\n\
+if (zpos < -2.0) zpos = -2.0;\n\
+gl_Position = uPMatrix * vec4(position.x, position.y, zpos, 1.);\n\
+height=-4.0*zpos;\n\
+gl_PointSize = ps;\n\
+}',
+      fragmentColor: '\n\
+precision mediump float;\n\
+varying float height;\n\
+void main(void) {\n\
+vec3 cs = vec3(0.5,0,0);\n\
+if (0.0 <= height && height <= 0.5) cs = vec3(0,0,height+0.5);\n\
+else if (0.5 < height && height <= 1.5) cs = vec3(0,height-0.5,1);\n\
+else if (1.5 < height && height <= 2.5) cs = vec3(height-1.5,1,2.5-height);\n\
+else if (2.5 < height && height <= 3.5) cs = vec3(1,3.5-height,0);\n\
+else if (3.5 < height && height <= 4.0) cs = vec3(4.5-height,0,0);\n\
+gl_FragColor = vec4(cs, 1.);\n\
+}',
+      fragmentBw: '\n\
+precision mediump float;\n\
+varying float height;\n\
+void main(void) {\n\
+vec3 cs = vec3(height/4.0,height/4.0,height/4.0);\n\
+gl_FragColor = vec4(cs, 1.);\n\
+}'
+    };
+
+    var self = {
+      getHeatmapShader: function (ctx, coloring) {
+        var fs = shaders.fragmentBw;
+        if (coloring) {
+          fs = shaders.fragmentColor;
+        }
+        var ps = compileProgram(ctx, shaders.vertexAging, fs);
+        ps.position = ctx.getAttribLocation(ps, 'position');
+        ps.birth = ctx.getAttribLocation(ps, 'birth');
+        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
+        ps.pointSize = ctx.getUniformLocation(ps, 'ps');
+        ps.date = ctx.getUniformLocation(ps, 'date');
+        ctx.enableVertexAttribArray(ps.position);
+        ctx.enableVertexAttribArray(ps.birth);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        if (coloring) {
+          ctx.myPrograms.heatmapShaderC = ps;
+        } else {
+          ctx.myPrograms.heatmapShaderBw = ps;
+        }
+
+      },
+      getFloatingShader: function (ctx, coloring) {
+        var fs = shaders.fragmentBw;
+        if (coloring) {
+          fs = shaders.fragmentColor;
+        }
+        var ps = compileProgram(ctx, shaders.vertexFloating, fs);
+        ps.position = ctx.getAttribLocation(ps, 'position');
+        ps.shift = ctx.getUniformLocation(ps, 'shift');
+        ps.pointSize = ctx.getUniformLocation(ps, 'ps');
+        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
+        ctx.enableVertexAttribArray(ps.position);
+        ctx.enableVertexAttribArray(ps.currentShift);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        if (coloring) {
+          ctx.myPrograms.floatingShaderC = ps;
+        } else {
+          ctx.myPrograms.floatingShaderBw = ps;
+        }
+      }
+    };
+    return self;
+  };
+  if (typeof module === 'object' && module && typeof module.exports === 'object') {
+    module.exports = HeatmapShader;
+  } else {
+    window.HeatmapShader = HeatmapShader;
+    if (typeof define === 'function' && define.amd) {
+      define(HeatmapShader);
+    }
+  }
+})(window);
+
+},{}],7:[function(require,module,exports){
+/* global define, compileProgram */
+/*jshint multistr: true */
+(function (window) {
+  'use strict';
+
+  var PolygonShader = function () {
+    var shaders = {
+      /*
+       * The vertex shader defines the position of a vertex
+       * since we draw a plot, position needs only two dimensions
+       * color is RGB amd uses three dimensions
+       * data is passed to this shader and can be shared with the
+       * fragment shader by using 'varying'
+       * gl_Position and gl_PointSize define the screen output
+       * for fancy effects you could do math on the position attribute
+       */
+      vertex: '\n\
+attribute vec3 position;\n\
+attribute vec3 color;\n\
+varying vec3 vc;\n\
+uniform mat4 uPMatrix;\n\
+void main(void) {\n\
+gl_Position = vec4(position, 1.);\n\
+gl_PointSize = 2.0;\n\
+vc=color;\n\
+}',
+      /*
+       * the fragment shader colors and textures points and areas
+       * glFragColor is the color of the resulting point
+       * the desired color is in vc from the vertex shader
+       */
+      fragment: '\n\
+precision mediump float;\n\
+varying vec3 vc;\n\
+void main(void) {\n\
+gl_FragColor = vec4(vc, 1.);\n\
+}'
+    };
+    var self = {
+      getShader: function (ctx) {
+        var ps = compileProgram(ctx, shaders.vertex, shaders.fragment);
+        ps.color = ctx.getAttribLocation(ps, 'color');
+        ps.position = ctx.getAttribLocation(ps, 'position');
+        ps.transformation = ctx.getUniformLocation(ps, 'uPMatrix');
+        ctx.enableVertexAttribArray(ps.color);
+        ctx.enableVertexAttribArray(ps.position);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        ctx.myPrograms.polygonShader = ps;
+      }
+    };
+    return self;
+  };
+  if (typeof module === 'object' && module && typeof module.exports === 'object') {
+    module.exports = PolygonShader;
+  } else {
+    window.PolygonShader = PolygonShader;
+    if (typeof define === 'function' && define.amd) {
+      define(PolygonShader);
+    }
+  }
+})(window);
+
+},{}],8:[function(require,module,exports){
+/* global define, compileProgram */
+/*jshint multistr: true */
+(function (window) {
+  'use strict';
+
+  var TextureShader = function () {
+    var shaders = {
+      vertex2d: '\n\
+attribute vec3 position;\n\
+attribute vec4 inputTextureCoordinate;\n\
+varying vec2 textureCoordinate;\n\
+void main(void) {\n\
+gl_Position = vec4(position, 1.);\n\
+textureCoordinate = inputTextureCoordinate.xy;\n\
+}',
+      vertex3d: '\n\
+attribute vec3 position;\n\
+attribute vec4 inputTextureCoordinate;\n\
+uniform mat4 uPMatrix;\n\
+varying vec2 textureCoordinate;\n\
+void main(void) {\n\
+gl_Position = uPMatrix * vec4(position, 1.);\n\
+textureCoordinate = inputTextureCoordinate.xy;\n\
+}',
+      fragment: '\n\
+precision mediump float;\n\
+varying vec2 textureCoordinate;\n\
+uniform sampler2D uSampler;\n\
+void main(void) {\n\
+gl_FragColor = texture2D(uSampler, textureCoordinate);\n\
+}'
+    };
+    var self = {
+      getShader3d: function (ctx) {
+        var ps = compileProgram(ctx, shaders.vertex3d, shaders.fragment);
+        ps.texCoord = ctx.getAttribLocation(ps, 'inputTextureCoordinate');
+        ps.texPos = ctx.getAttribLocation(ps, 'position');
+        ps.sampler = ctx.getUniformLocation(ps, 'uSampler');
+        ps.pMatrixUniform = ctx.getUniformLocation(ps, 'uPMatrix');
+        ctx.enableVertexAttribArray(ps.texCoord);
+        ctx.enableVertexAttribArray(ps.texPos);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        ctx.myPrograms.textureShader3d = ps;
+      },
+      getShader2d: function (ctx) {
+        var ps = compileProgram(ctx, shaders.vertex2d, shaders.fragment);
+        ps.texCoord = ctx.getAttribLocation(ps, 'inputTextureCoordinate');
+        ps.texPos = ctx.getAttribLocation(ps, 'position');
+        ps.sampler = ctx.getUniformLocation(ps, 'uSampler');
+        ctx.enableVertexAttribArray(ps.texCoord);
+        ctx.enableVertexAttribArray(ps.texPos);
+        if (!ctx.myPrograms) {
+          ctx.myPrograms = {};
+        }
+        ctx.myPrograms.textureShader2d = ps;
+      }
+    };
+    return self;
+  };
+  if (typeof module === 'object' && module && typeof module.exports === 'object') {
+    module.exports = TextureShader;
+  } else {
+    window.TextureShader = TextureShader;
+    if (typeof define === 'function' && define.amd) {
+      define(TextureShader);
+    }
+  }
+})(window);
+
+},{}]},{},[1,2,3,4,5,6,7,8]);
