@@ -1,6 +1,6 @@
 /**
  * @name    wegli
- * @version 0.0.8 | November 21st 2018
+ * @version 0.0.8 | November 22nd 2018
  * @author  Florian Markert
  * @license MIT
  */

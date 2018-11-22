@@ -1,6 +1,6 @@
 {
   "name": "wegli",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "author": "Florian Markert",
   "license": "MIT",
   "dependencies": {},
@@ -17,6 +17,6 @@
     "beautify-js": "js-beautify -r src/*",
     "uglify-js": "uglifyjs ./dist/wegli.js --compress --mangle --comments -o ./dist/wegli.min.js",
     "build-js": "browserify src/*.js -p [bannerify --file ./dist/banner.txt ] > dist/wegli.js",
-    "build": "npm run beautify-js & npm run build-js & npm run uglify-js"
+    "build": "npm run beautify-js && npm run build-js && npm run uglify-js"
   }
 }
