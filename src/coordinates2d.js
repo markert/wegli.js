@@ -4,6 +4,7 @@
   'use strict';
   var coordinates2d = function (ctx, params) {
     var coordinatePosition = {
+      lineRenderer: null,
       corners: [1, -1, 0, -1, -1, 0, -1, 1, 0],
       colors: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       xTicks: [],
@@ -15,25 +16,23 @@
       xAxis: -1,
       yAxis: -1
     }
-    var ticks = [];
-    var ticksColor = [];
-    var lineRenderer = attachPloygonShader(ctx);
+    coordinatePosition.lineRenderer = attachPloygonShader(ctx);
     var setVertex = function (array, position) {
       for (var i = 0; i < 3; i++)
         array.push(position[i]);
     }
     if (params) {
-      if (params.lineWidth !== 'undefined')
+      if (params.lineWidth)
         ctx.lineWidth(params.lineWidth);
       if (params.x) {
-        if (params.x.distance !== 'undefined') {
+        if (params.x.distance) {
           coordinatePosition.xAxis = -1 + (params.x.distance * 0.02);
           coordinatePosition.corners[1] = coordinatePosition.xAxis;
           coordinatePosition.corners[4] = coordinatePosition.xAxis;
         }
       }
       if (params.y) {
-        if (params.y.distance !== 'undefined') {
+        if (params.y.distance) {
           coordinatePosition.yAxis = -1 + (params.y.distance * 0.02);
           coordinatePosition.corners[3] = coordinatePosition.yAxis;
           coordinatePosition.corners[6] = coordinatePosition.yAxis;
@@ -90,12 +89,12 @@
       draw: function (p) {
         var width = ctx.canvas.width;
         var height = ctx.canvas.height;
-        lineRenderer.draw(coordinatePosition.corners, coordinatePosition.colors, 'LINE_STRIP');
+        coordinatePosition.lineRenderer.draw(coordinatePosition.corners, coordinatePosition.colors, 'LINE_STRIP');
         if (params.xTicks !== 'undefined') {
-          lineRenderer.draw(coordinatePosition.xTicks, coordinatePosition.xTicksColor, 'LINES');
+          coordinatePosition.lineRenderer.draw(coordinatePosition.xTicks, coordinatePosition.xTicksColor, 'LINES');
         }
         if (params.yTicks !== 'undefined') {
-          lineRenderer.draw(coordinatePosition.yTicks, coordinatePosition.yTicksColor, 'LINES');
+          coordinatePosition.lineRenderer.draw(coordinatePosition.yTicks, coordinatePosition.yTicksColor, 'LINES');
         }
       },
       lineWidth: function (lineWidth) {
