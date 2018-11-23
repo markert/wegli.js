@@ -145,11 +145,15 @@
         var xLengthAdjust = (1 - coordinatePosition.yAxis) / (d.xMinMax[1] - d.xMinMax[0]);
         var yLengthAdjust = (1 - coordinatePosition.xAxis) / (d.yMinMax[1] - d.yMinMax[0]);
         for (var i = 0; i < data.length; i++) {
+          var color = [0, 0, 0];
+          if (data[i].color) {
+            color = data[i].color;
+          }
           d.values[i].position.length = data[i].x.length * 3;
           d.values[i].color.length = data[i].x.length * 3;
           for (var j = 0; j < data[i].x.length; j++) {
             setVertex(d.values[i].position, [(data[i].x[j] - d.xMinMax[0]) * xLengthAdjust + coordinatePosition.yAxis, (data[i].y[j] - d.yMinMax[0]) * yLengthAdjust + coordinatePosition.xAxis, 0]);
-            setVertex(d.values[i].color, [0, 0, 0]);
+            setVertex(d.values[i].color, color);
           }
         }
       },
