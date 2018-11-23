@@ -76,9 +76,9 @@
               var num = Math.floor((1 - coordinatePosition.xAxis) * 10);
               for (var k = 0; k < num; k++) {
                 setVertex(coordinatePosition.yTicks, [coordinatePosition.yAxis + 0.025 + 0.1 * (k + 1), dist * (i + 1) + coordinatePosition.xAxis, 0]);
-                setVertex(coordinatePosition.yTicksColor, [0, 0, 0]);
+                setVertex(coordinatePosition.yTicksColor, [0.5, 0.5, 0.5]);
                 setVertex(coordinatePosition.yTicks, [coordinatePosition.yAxis - 0.025 + 0.1 * (k + 1), dist * (i + 1) + coordinatePosition.xAxis, 0]);
-                setVertex(coordinatePosition.yTicksColor, [0, 0, 0]);
+                setVertex(coordinatePosition.yTicksColor, [0.5, 0.5, 0.5]);
               }
             }
           }
