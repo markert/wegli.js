@@ -16,7 +16,17 @@
       yTicksColor: [],
       yTickLength: 0.1,
       xAxis: -1,
-      yAxis: -1
+      yAxis: -1,
+      data: {
+        xMinMax: [0, 0],
+        yMinMax: [0, 0],
+        values: [{
+          color: [],
+          position: [],
+          xMinMax: [0, 0],
+          yMinMax: [0, 0]
+        }]
+      }
     }
     coordinatePosition.lineRenderer = attachPloygonShader(ctx);
     var setVertex = function (array, position) {
@@ -98,7 +108,51 @@
         }
       }
     }
+    var findMinMax = function (array) {
+      var max = -Number.MAX_VALUE;
+      var min = Number.MAX_VALUE;
+      for (var i = 0; i < array.length; i++) {
+        if (array[i] > max) max = array[i];
+        if (array[i] < min) min = array[i];
+      }
+      return [min, max];
+    }
     var self = {
+      setData: function (data, styles) {
+        var d = coordinatePosition.data;
+        if (d.values.length < data.length) {
+          for (var i = d.values.length; i < data.length; i++) {
+            d.values.push({
+              color: [],
+              position: [],
+              xMinMax: [0, 0],
+              yMinMax: [0, 0]
+            });
+          }
+        } else {
+          d.values.length = data.length;
+        }
+        d.xMinMax = [Number.MAX_VALUE, -Number.MAX_VALUE];
+        d.yMinMax = [Number.MAX_VALUE, -Number.MAX_VALUE];
+        for (var i = 0; i < data.length; i++) {
+          d.values[i].xMinMax = findMinMax(data[i].x);
+          if (d.values[i].xMinMax[0] < d.xMinMax[0]) d.xMinMax[0] = d.values[i].xMinMax[0];
+          if (d.values[i].xMinMax[1] > d.xMinMax[1]) d.xMinMax[1] = d.values[i].xMinMax[1];
+          d.values[i].yMinMax = findMinMax(data[i].y);
+          if (d.values[i].yMinMax[0] < d.yMinMax[0]) d.yMinMax[0] = d.values[i].yMinMax[0];
+          if (d.values[i].yMinMax[1] > d.yMinMax[1]) d.yMinMax[1] = d.values[i].yMinMax[1];
+        }
+        var xLengthAdjust = (1 - coordinatePosition.yAxis) / (d.xMinMax[1] - d.xMinMax[0]);
+        var yLengthAdjust = (1 - coordinatePosition.xAxis) / (d.yMinMax[1] - d.yMinMax[0]);
+        for (var i = 0; i < data.length; i++) {
+          d.values[i].position.length = data[i].x.length * 3;
+          d.values[i].color.length = data[i].x.length * 3;
+          for (var j = 0; j < data[i].x.length; j++) {
+            setVertex(d.values[i].position, [(data[i].x[j] - d.xMinMax[0]) * xLengthAdjust + coordinatePosition.yAxis, (data[i].y[j] - d.yMinMax[0]) * yLengthAdjust + coordinatePosition.xAxis, 0]);
+            setVertex(d.values[i].color, [0, 0, 0]);
+          }
+        }
+      },
       draw: function (p) {
         var width = ctx.canvas.width;
         var height = ctx.canvas.height;
@@ -111,6 +165,9 @@
         }
         if (params.yTicks !== 'undefined') {
           coordinatePosition.lineRenderer.draw(coordinatePosition.yTicks, coordinatePosition.yTicksColor, 'LINES');
+        }
+        for (var i = 0; i < coordinatePosition.data.values.length; i++) {
+          coordinatePosition.lineRenderer.draw(coordinatePosition.data.values[i].position, coordinatePosition.data.values[i].color, 'LINE_STRIP');
         }
       },
       lineWidth: function (lineWidth) {
