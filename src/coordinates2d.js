@@ -8,8 +8,10 @@
       colors: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       xTicks: [],
       xTicksColor: [],
+      xTickLength: 0.1,
       yTicks: [],
       yTicksColor: [],
+      yTickLength: 0.1,
       xAxis: -1,
       yAxis: -1
     }
@@ -34,14 +36,17 @@
         }
       }
       if (params.x) {
-        if (params.x.ticks !== 'undefined') {
+        if (params.x.ticks) {
+          if (params.x.tickLength) {
+            coordinatePosition.xTickLength = params.x.tickLength;
+          }
           var dist = (-coordinatePosition.yAxis + 1) / (params.x.ticks + 1);
           for (var i = 0; i < params.x.ticks; i++) {
             coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
-            coordinatePosition.xTicks.push(coordinatePosition.xAxis + 0.1);
+            coordinatePosition.xTicks.push(coordinatePosition.xAxis + coordinatePosition.xTickLength);
             coordinatePosition.xTicks.push(0);
             coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
-            coordinatePosition.xTicks.push(coordinatePosition.xAxis - 0.1);
+            coordinatePosition.xTicks.push(coordinatePosition.xAxis - coordinatePosition.xTickLength);
             coordinatePosition.xTicks.push(0);
             for (var j = 0; j < 6; j++)
               coordinatePosition.xTicksColor.push(0);
@@ -50,13 +55,16 @@
         }
       }
       if (params.y) {
-        if (params.y.ticks !== 'undefined') {
+        if (params.y.ticks) {
+          if (params.y.tickLength) {
+            coordinatePosition.yTickLength = params.y.tickLength;
+          }
           var dist = (-coordinatePosition.xAxis + 1) / (params.y.ticks + 1);
           for (var i = 0; i < params.y.ticks; i++) {
-            coordinatePosition.yTicks.push(coordinatePosition.yAxis + 0.1);
+            coordinatePosition.yTicks.push(coordinatePosition.yAxis + coordinatePosition.yTickLength);
             coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
             coordinatePosition.yTicks.push(0);
-            coordinatePosition.yTicks.push(coordinatePosition.yAxis - 0.1);
+            coordinatePosition.yTicks.push(coordinatePosition.yAxis - coordinatePosition.yTickLength);
             coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
             coordinatePosition.yTicks.push(0);
             for (var j = 0; j < 6; j++)
