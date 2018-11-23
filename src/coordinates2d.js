@@ -18,6 +18,10 @@
     var ticks = [];
     var ticksColor = [];
     var lineRenderer = attachPloygonShader(ctx);
+    var setVertex = function (array, position) {
+      for (var i = 0; i < 3; i++)
+        array.push(position[i]);
+    }
     if (params) {
       if (params.lineWidth !== 'undefined')
         ctx.lineWidth(params.lineWidth);
@@ -42,25 +46,17 @@
           }
           var dist = (-coordinatePosition.yAxis + 1) / (params.x.ticks + 1);
           for (var i = 0; i < params.x.ticks; i++) {
-            coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
-            coordinatePosition.xTicks.push(coordinatePosition.xAxis + coordinatePosition.xTickLength);
-            coordinatePosition.xTicks.push(0);
-            coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
-            coordinatePosition.xTicks.push(coordinatePosition.xAxis - coordinatePosition.xTickLength);
-            coordinatePosition.xTicks.push(0);
-            for (var j = 0; j < 6; j++)
-              coordinatePosition.xTicksColor.push(0);
+            setVertex(coordinatePosition.xTicks, [dist * (i + 1) + coordinatePosition.yAxis, coordinatePosition.xAxis + coordinatePosition.xTickLength, 0]);
+            setVertex(coordinatePosition.xTicksColor, [0, 0, 0]);
+            setVertex(coordinatePosition.xTicks, [dist * (i + 1) + coordinatePosition.yAxis, coordinatePosition.xAxis - coordinatePosition.xTickLength, 0]);
+            setVertex(coordinatePosition.xTicksColor, [0, 0, 0]);
             if (params.x.grid) {
               var num = Math.floor((1 - coordinatePosition.yAxis) * 10);
               for (var k = 0; k < num; k++) {
-                coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
-                coordinatePosition.xTicks.push(coordinatePosition.xAxis + 0.025 + 0.1 * (k + 1));
-                coordinatePosition.xTicks.push(0);
-                coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
-                coordinatePosition.xTicks.push(coordinatePosition.xAxis - 0.025 + 0.1 * (k + 1));
-                coordinatePosition.xTicks.push(0);
-                for (var j = 0; j < 6; j++)
-                  coordinatePosition.xTicksColor.push(0.5);
+                setVertex(coordinatePosition.xTicks, [dist * (i + 1) + coordinatePosition.yAxis, coordinatePosition.xAxis + 0.025 + 0.1 * (k + 1), 0]);
+                setVertex(coordinatePosition.xTicksColor, [0.5, 0.5, 0.5]);
+                setVertex(coordinatePosition.xTicks, [dist * (i + 1) + coordinatePosition.yAxis, coordinatePosition.xAxis - 0.025 + 0.1 * (k + 1), 0]);
+                setVertex(coordinatePosition.xTicksColor, [0.5, 0.5, 0.5]);
               }
             }
           }
@@ -73,31 +69,22 @@
           }
           var dist = (-coordinatePosition.xAxis + 1) / (params.y.ticks + 1);
           for (var i = 0; i < params.y.ticks; i++) {
-            coordinatePosition.yTicks.push(coordinatePosition.yAxis + coordinatePosition.yTickLength);
-            coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
-            coordinatePosition.yTicks.push(0);
-            coordinatePosition.yTicks.push(coordinatePosition.yAxis - coordinatePosition.yTickLength);
-            coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
-            coordinatePosition.yTicks.push(0);
-            for (var j = 0; j < 6; j++)
-              coordinatePosition.yTicksColor.push(0);
+            setVertex(coordinatePosition.yTicks, [coordinatePosition.yAxis + coordinatePosition.yTickLength, dist * (i + 1) + coordinatePosition.xAxis, 0]);
+            setVertex(coordinatePosition.yTicksColor, [0, 0, 0]);
+            setVertex(coordinatePosition.yTicks, [coordinatePosition.yAxis - coordinatePosition.yTickLength, dist * (i + 1) + coordinatePosition.xAxis, 0]);
+            setVertex(coordinatePosition.yTicksColor, [0, 0, 0]);
             if (params.y.grid) {
               var num = Math.floor((1 - coordinatePosition.xAxis) * 10);
               for (var k = 0; k < num; k++) {
-                coordinatePosition.yTicks.push(coordinatePosition.yAxis + 0.025 + 0.1 * (k + 1));
-                coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
-                coordinatePosition.yTicks.push(0);
-                coordinatePosition.yTicks.push(coordinatePosition.yAxis - 0.025 + 0.1 * (k + 1));
-                coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
-                coordinatePosition.yTicks.push(0);
-                for (var j = 0; j < 6; j++)
-                  coordinatePosition.yTicksColor.push(0.5);
+                setVertex(coordinatePosition.yTicks, [coordinatePosition.yAxis + 0.025 + 0.1 * (k + 1), dist * (i + 1) + coordinatePosition.xAxis, 0]);
+                setVertex(coordinatePosition.yTicksColor, [0, 0, 0]);
+                setVertex(coordinatePosition.yTicks, [coordinatePosition.yAxis - 0.025 + 0.1 * (k + 1), dist * (i + 1) + coordinatePosition.xAxis, 0]);
+                setVertex(coordinatePosition.yTicksColor, [0, 0, 0]);
               }
             }
           }
         }
       }
-
     }
     var self = {
       draw: function (p) {
