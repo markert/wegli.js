@@ -50,8 +50,20 @@
             coordinatePosition.xTicks.push(0);
             for (var j = 0; j < 6; j++)
               coordinatePosition.xTicksColor.push(0);
+            if (params.x.grid) {
+              var num = Math.floor((1 - coordinatePosition.yAxis) * 10);
+              for (var k = 0; k < num; k++) {
+                coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
+                coordinatePosition.xTicks.push(coordinatePosition.xAxis + 0.025 + 0.1 * (k + 1));
+                coordinatePosition.xTicks.push(0);
+                coordinatePosition.xTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
+                coordinatePosition.xTicks.push(coordinatePosition.xAxis - 0.025 + 0.1 * (k + 1));
+                coordinatePosition.xTicks.push(0);
+                for (var j = 0; j < 6; j++)
+                  coordinatePosition.xTicksColor.push(0.5);
+              }
+            }
           }
-
         }
       }
       if (params.y) {
@@ -65,12 +77,24 @@
             coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
             coordinatePosition.yTicks.push(0);
             coordinatePosition.yTicks.push(coordinatePosition.yAxis - coordinatePosition.yTickLength);
-            coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.yAxis);
+            coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
             coordinatePosition.yTicks.push(0);
             for (var j = 0; j < 6; j++)
               coordinatePosition.yTicksColor.push(0);
+            if (params.y.grid) {
+              var num = Math.floor((1 - coordinatePosition.xAxis) * 10);
+              for (var k = 0; k < num; k++) {
+                coordinatePosition.yTicks.push(coordinatePosition.yAxis + 0.025 + 0.1 * (k + 1));
+                coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
+                coordinatePosition.yTicks.push(0);
+                coordinatePosition.yTicks.push(coordinatePosition.yAxis - 0.025 + 0.1 * (k + 1));
+                coordinatePosition.yTicks.push(dist * (i + 1) + coordinatePosition.xAxis);
+                coordinatePosition.yTicks.push(0);
+                for (var j = 0; j < 6; j++)
+                  coordinatePosition.yTicksColor.push(0.5);
+              }
+            }
           }
-
         }
       }
 
