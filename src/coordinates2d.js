@@ -7,6 +7,8 @@
       lineRenderer: null,
       corners: [1, -1, 0, -1, -1, 0, -1, 1, 0],
       colors: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      backgroundCorners: [1, -1, 0, -1, -1, 0, -1, 1, 0, 1, 1, 0],
+      backgroundColor: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       xTicks: [],
       xTicksColor: [],
       xTickLength: 0.1,
@@ -29,6 +31,8 @@
           coordinatePosition.xAxis = -1 + (params.x.distance * 0.02);
           coordinatePosition.corners[1] = coordinatePosition.xAxis;
           coordinatePosition.corners[4] = coordinatePosition.xAxis;
+          coordinatePosition.backgroundCorners[1] = coordinatePosition.xAxis;
+          coordinatePosition.backgroundCorners[4] = coordinatePosition.xAxis;
         }
       }
       if (params.y) {
@@ -36,6 +40,8 @@
           coordinatePosition.yAxis = -1 + (params.y.distance * 0.02);
           coordinatePosition.corners[3] = coordinatePosition.yAxis;
           coordinatePosition.corners[6] = coordinatePosition.yAxis;
+          coordinatePosition.backgroundCorners[3] = coordinatePosition.yAxis;
+          coordinatePosition.backgroundCorners[6] = coordinatePosition.yAxis;
         }
       }
       if (params.x) {
@@ -84,11 +90,21 @@
           }
         }
       }
+      if (params.backgroundColor) {
+        for (var i = 0; i < 4; i++) {
+          coordinatePosition.backgroundColor[3 * i] = params.backgroundColor[0];
+          coordinatePosition.backgroundColor[3 * i + 1] = params.backgroundColor[1];
+          coordinatePosition.backgroundColor[3 * i + 2] = params.backgroundColor[2];
+        }
+      }
     }
     var self = {
       draw: function (p) {
         var width = ctx.canvas.width;
         var height = ctx.canvas.height;
+        if (params.backgroundColor !== 'undefined') {
+          coordinatePosition.lineRenderer.draw(coordinatePosition.backgroundCorners, coordinatePosition.backgroundColor, 'TRIANGLE_FAN');
+        }
         coordinatePosition.lineRenderer.draw(coordinatePosition.corners, coordinatePosition.colors, 'LINE_STRIP');
         if (params.xTicks !== 'undefined') {
           coordinatePosition.lineRenderer.draw(coordinatePosition.xTicks, coordinatePosition.xTicksColor, 'LINES');
