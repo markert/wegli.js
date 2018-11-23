@@ -5,11 +5,19 @@ $(document).ready(function () {
   var hmCanvas = document.getElementById('hmctx');
   var wfCanvas = document.getElementById('wfctx');
   var teCanvas = document.getElementById('tectx');
+  var coCanvas = document.getElementById('cctx');
   var cnt;
   var w = 256,
     h = 256;
 
   var ctx = createWebglContext(lineCanvas, {
+    types: ['webgl', 'experimental-webgl'],
+    attrs: {
+      antialias: true
+    }
+  });
+
+  var cctx = createWebglContext(coCanvas, {
     types: ['webgl', 'experimental-webgl'],
     attrs: {
       antialias: true
@@ -38,6 +46,18 @@ $(document).ready(function () {
   });
 
   var lineRenderer = attachPloygonShader(ctx);
+  var coordinates = coordinates2d(cctx, {
+    x: {
+      distance: 10,
+      ticks: 3,
+      tickLength: 0.05
+    },
+    y: {
+      ticks: 4,
+      distance: 10,
+      tickLength: 0.05
+    }
+  });
   var hmRenderer = attachHeatmapShader(ctxh, {
     x: w,
     y: h
@@ -131,6 +151,7 @@ $(document).ready(function () {
       c.push(cnt / w);
     }
     lineRenderer.draw(p, c, 'LINE_STRIP');
+    coordinates.draw();
     // render heatmap wave
     hmRenderer.age(0.015);
     var i = 0.5;
