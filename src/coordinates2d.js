@@ -167,7 +167,7 @@
           d.values[i].position.length = data[i].x.length * 3;
           d.values[i].color.length = data[i].x.length * 3;
           for (var j = 0; j < data[i].x.length; j++) {
-            setVertex(d.values[i].position, [(data[i].x[j] - d.xMinMax[0]) * xLengthAdjust + coordinatePosition.yAxis, (data[i].y[j] - d.yMinMax[0]) * yLengthAdjust + coordinatePosition.xAxis, 0]);
+            setVertex(d.values[i].position, [(data[i].x[j] - d.xMinMax[0]) * xLengthAdjust + coordinatePosition.yAxis, (data[i].y[j] - d.yMinMax[0]) * yLengthAdjust + coordinatePosition.xAxis, -1]);
             setVertex(d.values[i].color, color);
           }
         }
